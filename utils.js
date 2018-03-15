@@ -1,5 +1,19 @@
 const argRefSymbol = 'X';
 
+/**
+ * A strict same elements in same order comparison.
+ * Example:
+ *    console.log('Same Arrays:', sameArr([1, 2], [1, 2]));
+ *    console.log('Same Arrays:', sameArr([2, 1], [1, 2]));
+ * @param {!Array.<*>} a
+ * @param {!Array.<*>} b
+ */
+const sameArr = (a, b) => a.length === b.length && a.every((c, i) => b[i] === c);
+
+/**
+ * @param {?} t
+ * @returns {boolean}
+ */
 const isDef = t => t !== undefined;
 
 /**
@@ -119,10 +133,9 @@ const mathFunc = (m, a) => {
     if (!s.includes('$')) {
       [err, f] = funcMaker(s);
     }
-    }
-  else {
+  } else {
     [err, f] = funcMaker(m);
-    }
+  }
   return [err, f];
 };
 
@@ -227,8 +240,12 @@ const removeOrphans = G => {
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
-  }
+}
 
+/**
+ * @param {!Node} n
+ * @returns {function(!Array<!Node>, !Array<!Node>): !Array<!Node>}
+ */
 const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
 
 /**
@@ -315,5 +332,6 @@ module.exports = {
   tail,
   safeJsonParse,
   mathCleaner,
-  funcMaker
+  funcMaker,
+  sameArr
 };

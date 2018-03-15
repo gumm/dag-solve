@@ -66,7 +66,7 @@ class Node {
     this._round = undefined;
 
     /**
-     * @type {!Array<string|number>|undefined}
+     * @type {!Array<string|number>|undefined|null}
      * @private
      */
     this._path = undefined;
@@ -362,8 +362,11 @@ class Node {
 
       // This node can access data on a path.
     } else if (this._path && this._path.length) {
-      const f = R.pathOr(undefined, this._path);
-      this._func = (X, data) => f(data);
+      if (u.sameArr(this._path, [null])) {
+        this._func = (X, data) => data;
+      } else {
+        this._func = (X, data) => R.pathOr(undefined, this._path)(data);
+      }
       this._errState = null;
 
       // This does nothing but return a fallback value

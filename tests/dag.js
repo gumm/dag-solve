@@ -153,6 +153,22 @@ describe('Use the DAG to sort, disconnect an delete nodes nodes', () => {
       .connect(F, C)
       .connect(D, F);
 
+  // Names
+  it('List the nodes names in insert order', () => {
+    be.equalsArrays(g.names, ['ROOT','A','B','C','D','E','F'])
+  });
+  it('List the nodes names in topo order', () => {
+    be.equalsArrays(g.topoNames, ['D','F','C','E','B','A','ROOT'])
+  });
+
+  // IDs
+  it('List the nodes ids in insert order', () => {
+    be.equalsArrays(g.ids, [0,1,2,3,4,5,6])
+  });
+  it('List the nodes ids in topo order', () => {
+    be.equalsArrays(g.topoIds, [4,6,3,5,2,1,0])
+  });
+
   it('the graph has no orphans', () => {be.equalsArrays(g.orphans, [])});
   it('the graph can be topologically sorted',
      () => {assert.deepStrictEqual(g.topo, [D, F, C, E, B, A, g.root])});
@@ -679,7 +695,7 @@ describe('Nodes can access data from an array or object', () => {
     'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
   };
 
-  it('Can be accessed...', () => {
+  it('Node can access data from deep in object', () => {
     A.setPath('SOME', 0);
     assert.strictEqual(g.solve(data), 1);
 
@@ -690,6 +706,15 @@ describe('Nodes can access data from an array or object', () => {
   it('The data path can be read', () => {
     be.equalsArrays(A.path, ['SOME', 2, 'weird', 'data', 1]);
   });
+
+  it('When the path is set to "null" the node returns what it is given', () => {
+    A.setPath(null);
+    assert.strictEqual(g.solve(1.23), 1.23);
+
+    const s = g.getSolver();
+    const arr = [1,2,3,4,5,6];
+    be.equalsArrays(arr.map(s), arr);
+  })
 
 });
 
@@ -825,8 +850,16 @@ describe('A dag can be given a value/object to compute on', () => {
   const D2 = Array(10000).fill(data);
   const D3 = Array(10000).fill(1).map((e, i) => [i]);
 
-  it('It is ignored when nothing uses it.',
-     () => {assert.strictEqual(g.solve(data), 0.55)});
+  it('When given data, it can read and solve.', () => {
+    D.setPath('SOME', 2, 'weird', 'data', 1);
+    C.setPath('SOME', 2, 'weird', 'data', 3, 1);
+    assert.strictEqual(g.solve(data), 0.55)
+  });
+
+  it('Use the "debug" method to get the solution at each node', () => {
+    // This is the solution at each node in topo order
+    assert.deepStrictEqual(g.debug(data), [ 10, 3, 3, 0.55, 0.55 ])
+  });
 
   it('The graph can be applied to an array of data', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
