@@ -883,15 +883,13 @@ describe('DAG Class creates a Directed-Acyclic-Graph', () => {
     it('The graph can be applied to an array of data', () => {
       D.setPath('SOME', 2, 'weird', 'data', 1);
       C.setPath('SOME', 2, 'weird', 'data', 3, 1);
-      let r = D2.map(e => g.solve(e));
-      console.log(r); // <- About 270ms
+      D2.map(e => g.solve(e));  // <- About 270ms
     });
 
     it('A DAG can retrun a pre-computed solver that is ' +
         'much faster than the above methods.', () => {
       const solver = g.getSolver();
-      let r = D2.map(solver);
-      console.log(r);  // <- About 25ms About 10x faster
+      D2.map(solver);  // <- About 25ms About 10x faster
     });
 
     it('The graph can be applied to an array of array-data', () => {
@@ -899,8 +897,7 @@ describe('DAG Class creates a Directed-Acyclic-Graph', () => {
       D.setPath(0);
       C.setPath(0);
       const solver = g.getSolver();
-      let r = D3.map(solver);
-      console.log(r);
+      D3.map(solver);
     });
 
   });
