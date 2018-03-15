@@ -1,0 +1,31 @@
+{
+  "name": "dag-solve",
+  "version": "1.0.0",
+  "description": "Directed acyclic graph (DAG) based solver.",
+  "main": "dag.js",
+  "scripts": {
+    "test": "mocha -R spec ./test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gumm/dag-solve.git"
+  },
+  "keywords": [
+    "dag"
+  ],
+  "author": "Jan Badenhorst",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/gumm/dag-solve/issues"
+  },
+  "homepage": "https://github.com/gumm/dag-solve#readme",
+  "dependencies": {
+    "ramda": "*"
+  },
+  "devDependencies": {
+    "be-sert": "*",
+    "istanbul": "^0.4.5",
+    "mocha": "*",
+    "rewire": "*"
+  }
+}
