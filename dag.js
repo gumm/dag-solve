@@ -395,7 +395,7 @@ class Node {
       const result = this._func(argArr, opt_d);
       // Make sure things like false, null, 0 don't trigger the fallback,
       // But NaN and undefined does.
-      return (result === undefined || isNaN(result))
+      return result === undefined
           ? [null, this.fallback]
           : [null, result];
     } else {
