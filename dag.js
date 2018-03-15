@@ -66,7 +66,7 @@ const parseFilter = arr => {
     if (rv === 'vc') {
       f = v => R1(v) === v1 ? v1 : R2(v) === v2 ? v2 : v;
     }
-  }
+    }
   return [null, X => f(X[0])];
 };
 
@@ -91,9 +91,11 @@ const mathCleaner = s => {
  */
 const funcMaker = fn => {
   try {
-    return [null, new Function(
-        argRefSymbol, `try { return ${fn}; } catch(e) { return; }`)];
-  } catch(err) {
+    return [
+      null,
+      new Function(argRefSymbol, `try { return ${fn}; } catch(e) { return; }`)
+    ];
+  } catch (err) {
     return [`Could not make a function with "${fn}"`, alwaysUndef];
   }
 };
@@ -115,15 +117,14 @@ const mathFunc = (m, a) => {
   if (typeof m === 'string') {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}[${i}]`),
-        mathCleaner(m)
-    );
+        mathCleaner(m));
     if (!s.includes('$')) {
       [err, f] = funcMaker(s);
     }
-  }
+    }
   else {
     [err, f] = funcMaker(m);
-  }
+    }
   return [err, f];
 };
 
@@ -148,10 +149,9 @@ const leafNodes = G => {
   // where each key in the DAG is notated with the number of times it
   // appears as a value. In terms of a DAG, this describes how many edges
   // point to this node.
-  const C = [...G.keys()].reduce((p,c) => (p.set(c,0)) || p, new Map());
+  const C = [...G.keys()].reduce((p, c) => (p.set(c, 0)) || p, new Map());
   [...G.values()].forEach(
-      arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0))
-  );
+      arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0)));
   const Q = [...G.keys()].filter(e => C.get(e) === 0);
   return [C, Q];
 };
@@ -187,7 +187,7 @@ const topoSort = G => {
         Q.push(v);
       }
     });
-  }
+    }
   return S;
 };
 
@@ -208,13 +208,15 @@ const removeOrphans = G => {
   for (const [k, s] of G.entries()) {
     if (s.size === 0 && k !== 0) {
       G.delete(k);
-      for (const v of G.values()) { v.delete(k) }
+      for (const v of G.values()) {
+        v.delete(k)
+      }
     }
-  }
-  if([...G.entries()].reduce(
-      (p, c) => p || (c[1].size === 0 && c[0] !== 0), false)) {
+    }
+  if ([...G.entries()].reduce(
+          (p, c) => p || (c[1].size === 0 && c[0] !== 0), false)) {
     removeOrphans(G);
-  }
+    }
   return G;
 };
 
@@ -226,9 +228,8 @@ const removeOrphans = G => {
  */
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
-  while (true)
-    yield i++;
-}
+  while (true) yield i++;
+  }
 
 const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
 
@@ -256,7 +257,8 @@ const safeJsonParse = json => {
   let parsed;
   try {
     parsed = JSON.parse(json);
-  } catch (e) {}
+  } catch (e) {
+    }
   return parsed;
 };
 
@@ -307,7 +309,6 @@ const pRound = precision => {
  * @type {Node}
  */
 class Node {
-
   /**
    * @param {!number} id
    * @param {!string} name
@@ -583,7 +584,6 @@ class Node {
    * @returns {Node}
    */
   setFilter(rv, p1, v1, p2, v2) {
-
     if ([rv, p1, v1, p2, v2].filter(e => isDef(e)).length) {
       const f = [rv, p1, v1, p2, v2];
 
@@ -604,7 +604,9 @@ class Node {
    * @returns {!Node}
    */
   addEnum(k, v) {
-    if (k === undefined) { return this }
+    if (k === undefined) {
+      return this
+    }
     this._enum = enumSet(this._enum, k, v);
 
     this._path = [];
@@ -629,7 +631,8 @@ class Node {
   /**
    * @returns {Array<Array<*>>}
    */
-  get enum() {
+  get enum
+  () {
     return this._enum;
   }
 
@@ -639,33 +642,33 @@ class Node {
     if (this._math) {
       [this._errState, this._func] = mathFunc(this._math, this.args);
 
-    // This node does enums
+      // This node does enums
     } else if (this._enum && this._enum.length) {
       const m = new Map(this._enum);
       this._func = X => m.get(X[0]);
       this._errState = null;
 
-    // This node does rounding
+      // This node does rounding
     } else if (isDef(this._round)) {
       const r = pRound(this._round);
       this._func = X => r(X[0]);
       this._errState = null;
 
-    // This node filtering
+      // This node filtering
     } else if (this._filter && this._filter.length) {
       [this._errState, this._func] = parseFilter(this._filter);
 
-    // This node can access data on a path.
+      // This node can access data on a path.
     } else if (this._path && this._path.length) {
       const f = R.pathOr(undefined, this._path);
       this._func = (X, data) => f(data);
       this._errState = null;
 
-    // This does nothing but return a fallback value
+      // This does nothing but return a fallback value
     } else if (this._fallback) {
       this._func = () => this._fallback;
       this._errState = null;
-    }
+      }
 
     return this;
   }
@@ -686,27 +689,25 @@ class Node {
   solve(p, topoIds, opt_d) {
     const argArr = this.args.map(id => p[topoIds.indexOf(id)]);
 
-    if(!this._errState) {
+    if (!this._errState) {
       const result = this._func(argArr, opt_d);
       // Make sure things like false, null, 0 don't trigger the fallback.
-      return  result === undefined ? [null, this.fallback] : [null, result];
+      return result === undefined ? [null, this.fallback] : [null, result];
     } else {
       this.clean()
-    }
-    if(!this._errState) {
+      }
+    if (!this._errState) {
       return this.solve(p, topoIds);
-    }
+      }
     return [this._errState, undefined];
   }
-
-}
+  }
 
 
 /**
  * @type {DAG}
  */
 class DAG {
-
   constructor() {
     /**
      * The container of our DAG
@@ -784,7 +785,7 @@ class DAG {
       if (s.size === 0 && n !== this._rootNode) {
         orphans.push(n)
       }
-    }
+      }
     return orphans;
   }
 
@@ -824,8 +825,12 @@ class DAG {
    * @returns {(!Node|!boolean)}
    */
   addNode(n) {
-    if (this.G.has(n)) { return n; }
-    if (this.ids.includes(n.id)) { return false; }
+    if (this.G.has(n)) {
+      return n;
+      }
+    if (this.ids.includes(n.id)) {
+      return false;
+    }
     this.G.set(n, new Set());
     this._nodeMaker = nodeMaker(idGen(max(this.ids)));
     return n;
@@ -848,7 +853,7 @@ class DAG {
           k.delArg(n);
         }
       }
-    }
+      }
     return deleted;
   }
 
@@ -866,10 +871,18 @@ class DAG {
    * @returns {DAG}
    */
   connect(a, b) {
-    if (a === this.root) { return this; }
-    if (b === this.root && this.indegrees(b).length > 0) { return this; }
-    if (!this.G.has(a) || !this.G.has(b)) { return this; }
-    if (this.G.get(a).has(b)) { return this; }
+    if (a === this.root) {
+      return this;
+      }
+    if (b === this.root && this.indegrees(b).length > 0) {
+      return this;
+      }
+    if (!this.G.has(a) || !this.G.has(b)) {
+      return this;
+      }
+    if (this.G.get(a).has(b)) {
+      return this;
+    }
 
     // Fist connect it.
     this.G.get(a).add(b);
@@ -878,7 +891,7 @@ class DAG {
     // Then check for cycles.
     if (this.topo.length < this.nodes.length) {
       this.disconnect(a, b);
-    }
+      }
 
     return this;
   }
@@ -894,7 +907,7 @@ class DAG {
     if (this.G.has(a)) {
       this.G.get(a).delete(b);
       b.delArg(a);
-    }
+      }
     return this
   }
 
@@ -936,12 +949,9 @@ class DAG {
    * values.
    * @returns {!Map}
    */
-  getIdG() {
-    return [...this.G].reduce(
-        (p, [k, s]) => p.set(k.id, new Set([...s].map(grabId))),
-        new Map()
-    )
-  }
+  getIdG(){return [
+    ...this.G
+  ].reduce((p, [k, s]) => p.set(k.id, new Set([...s].map(grabId))), new Map())}
 
   /**
    * Compute the value of the DAG. That is, call the solve function in each
@@ -952,9 +962,7 @@ class DAG {
    * @param {Object=} opt_d
    * @returns {*}
    */
-  solve(opt_d) {
-    return this.getSolver()(opt_d)
-  }
+  solve(opt_d){return this.getSolver()(opt_d)}
 
   getSolver() {
     const m = removeOrphans(this.getIdG());
@@ -964,11 +972,11 @@ class DAG {
     const errs = [];
 
     return (opt_d) => tail(cleanNodes.reduce((p, n) => {
-      const [err, s] = n.solve(p, validTopoIds, opt_d);
-      errs.push(err);
-      p.push(s);
-      return p;
-    }, []));
+             const [err, s] = n.solve(p, validTopoIds, opt_d);
+             errs.push(err);
+             p.push(s);
+             return p;
+           }, []));
   }
 
 
@@ -1028,7 +1036,7 @@ class DAG {
           n._args = j.N.find(e => e.I === n.id).A;
         });
         return true;
-      }
+        }
       catch (e) {
         this.read(rollback);
       }
@@ -1072,8 +1080,4 @@ class DAG {
 */
 
 
-module.exports = {
-  DAG
-};
-
-
+module.exports = {DAG};
