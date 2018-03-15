@@ -352,7 +352,7 @@ class Node {
     this._filter = [];
 
     /**
-     * @type {function(*): (undefined|*)}
+     * @type {function(...*): (undefined|*)}
      * @private
      */
     this._func = alwaysUndef;
@@ -1016,7 +1016,7 @@ class DAG {
         const findNode = id => n.find(matchId(id));
 
         // Create a map that directly mirrors the original, but with IDs only.
-        const g = new Map(j.G);
+        const g = new Map(/** @type Array */ (j.G));
         this._rootNode = undefined;
         for (const k of g.keys()) {
           this.addNode(findNode(k))
