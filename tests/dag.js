@@ -364,7 +364,7 @@ describe('Nodes can do math.', () => {
          'is undefined',
      () => {
        g.disconnect(B, A);
-       assert.strictEqual(g.solve(), );
+       assert.strictEqual(g.solve(), undefined);
      });
 
   it('A single reference to a connecting node is treated ' +
