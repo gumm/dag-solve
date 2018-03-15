@@ -393,8 +393,11 @@ class Node {
 
     if (!this._errState) {
       const result = this._func(argArr, opt_d);
-      // Make sure things like false, null, 0 don't trigger the fallback.
-      return result === undefined ? [null, this.fallback] : [null, result];
+      // Make sure things like false, null, 0 don't trigger the fallback,
+      // But NaN and undefined does.
+      return (result === undefined || isNaN(result))
+          ? [null, this.fallback]
+          : [null, result];
     } else {
       this.clean()
       }
@@ -500,11 +503,27 @@ class DAG {
   }
 
   /**
+   * A list of the node names
+   * @return {!Array<!string>}
+   */
+  get topoNames() {
+    return this.topo.map(e => e.name);
+  }
+
+  /**
    * A list of the node IDs
    * @return {!Array<!number>}
    */
   get ids() {
     return this.nodes.map(e => e.id);
+  }
+
+  /**
+   * A list of the node IDs
+   * @return {!Array<!number>}
+   */
+  get topoIds() {
+    return this.topo.map(e => e.id);
   }
 
   /**
@@ -663,21 +682,36 @@ class DAG {
    * @param {Object=} opt_d
    * @returns {*}
    */
-  solve(opt_d){return this.getSolver()(opt_d)}
+  solve(opt_d) {
+    return this.getSolver()(opt_d);
+  }
 
-  getSolver() {
+  /**
+   * Solve the dag, but return an array of the value of each node in
+   * topo order. The same order a topo, topoIds and topoNames
+   * @param opt_d
+   * @returns {*}
+   */
+  debug(opt_d) {
+    return this.getSolver(true)(opt_d);
+  }
+
+  getSolver(debug = false) {
     const m = u.removeOrphans(this.getIdG());
     const validTopoNodes = this.topo.filter(e => m.has(e.id));
     const validTopoIds = validTopoNodes.map(u.grabId);
     const cleanNodes = validTopoNodes.map(n => n.clean());
     const errs = [];
 
-    return (opt_d) => u.tail(cleanNodes.reduce((p, n) => {
-      const [err, s] = n.solve(p, validTopoIds, opt_d);
-      errs.push(err);
-      p.push(s);
-      return p;
-    }, []));
+    return (opt_d) => {
+      const r = cleanNodes.reduce((p, n) => {
+        const [err, s] = n.solve(p, validTopoIds, opt_d);
+          errs.push(err);
+          p.push(s);
+          return p;
+        }, []);
+      return debug ? r : u.tail(r);
+    };
   }
 
 
