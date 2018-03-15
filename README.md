@@ -148,7 +148,8 @@ g.connect(E, A)   // In A: $2 === E
 g.connect(D, A);  // In A: $3 === D
 
 g.solve();    // 7.2
-g.debug();    // [ 10, 6, 12, 7.2, 7.2 ] The result if each step in topo order
+g.debug();    // [ 10, 6, 12, 7.2, 7.2 ]
+              // The result of each step in topo order
 
 D.setMath(3);
 g.solve();    // 800
@@ -157,7 +158,7 @@ g.debug();    // [ 3, 200, 12, 800, 800 ]
 // Add a fallback to the enum
 E.setFallback(3.456);
 D.setMath(123);
-g.debug();    // [ 123, 3.456, 100, 2.809756097560976, 2.809756097560976 ]
+g.debug();    // [ 123, 3.456, 100, 2.80975609..., 2.80975609... ]
 
 // Add a rouonding function between A and root;
 const RND = g.makeNode('rounder').setRound(2);
