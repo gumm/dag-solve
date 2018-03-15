@@ -40,69 +40,71 @@ g.connect(A, g.root)
   .connect(C, B)
   .connect(D, C);
 
-g.root; // The root node. Auto created and can not be deleted from the graph.
+g.root;     // The root node. Auto created and can not be 
+            // deleted from the graph.
 
-g.graph; // The graph as a Map of Nodes to a Set of Nodes
+g.graph;    // The graph as a Map of Nodes to a Set of Nodes
 
-g.topo; // A topo sorted array of nodes
+g.topo;     // A topo sorted array of nodes
 
-g.nodes; // An array of nodes in order of insertion
+g.nodes;    // An array of nodes in order of insertion
 
-g.ids; // An array of node ids in order of insertion
-       // [ 0, 1, 2, 3, 4 ]
+g.ids;      // An array of node ids in order of insertion
+            // [ 0, 1, 2, 3, 4 ]
 
-g.names; // An array of node names in order of insertion
-         // [ 'ROOT', 'A', 'B', 'C', 'D' ]
+g.names;    // An array of node names in order of insertion
+            // [ 'ROOT', 'A', 'B', 'C', 'D' ]
 
-g.leafs; // An array of leaf nodes. Nodes without any in-degrees
+g.leafs;    // An array of leaf nodes. Nodes without any 
+            // in-degrees
 
-g.orphans; // An array of nodes without out degrees. (Excludes the root node)
+g.orphans;  // An array of nodes without out-degrees. 
+            // Excludes the root node
 
 ```
 ## Structure the graph
 ```javascript
-const DAG = require('dag-solve').DAG;
-/**
-* A simple 4 node graph.
-* 
-*   C ---> B ---> A --> root
-* 
-*/
+// A simple 4 node graph.
+// C ---> B ---> A --> root
 const g = new DAG();
 const A = g.makeNode('A');
 const B = g.makeNode('B');
 const C = g.makeNode('C');
-g.connect(A, g.root).connect(B, A).connect(C, B);
+g.connect(C, B).connect(B, A).connect(A, g.root);
 
 g.leafs; // [ C ]
 
 g.orphans; // []
 
 // Disconnect nodes
-// Read disconnect B from A
-g.disconnect(B, A);
-g.leafs; // [ A, C ] The don't have in degrees
-g.orphans; // [ B ] It has no out degree.
+g.disconnect(B, A);   // Read disconnect B from A
+g.leafs;              // [ A, C ] The don't have in degrees
+g.orphans;            // [ B ] It has no out degree.
 
 // Who is connected to B?
-g.indegrees(B); // [ C ] remains connected even if B is orphaned.
+g.indegrees(B);       // [ C ] remains connected even 
+                      // if B is orphaned.
 
 // Is B really not connected to anything?
-g.outdegrees(B); // [] Yep. No out degrees.
+g.outdegrees(B);      // [] Yep. No out degrees.
 
 // So lets delete B from the graph.
-let b = g.delNode(B); // b === true. Node B is not part of the graph any more
+let b = g.delNode(B); // b === true. Node B is not part of 
+                      // the graph any more
 
 // Oh no! Wait, we need it back.
-b = g.addNode(B); //  b === B. The B node is added back (But remains disconnected)
+b = g.addNode(B);     // b === B. The B node is added back
+                      // B remains disconnected
 
-// By now, B, and C are orphaned, and B, C, and A are all leaf nodes.
-g.orphans; // [C, B] Note the order of insertion
-g.leafs; //  [ A, C, B ]
+// By now, B, and C are orphaned, 
+// and B, C, and A are all leaf nodes.
+g.orphans;            // [ C, B ] Note the order of insertion
+g.leafs;              // [ A, C, B ]
 
 // Lets just clean the graph. Delete all orphans.
-g.clean(); // Recursively deletes all the orphan nodes.
-g.nodes; // [ root, A ]
-g.orphans; // []
-g.leafs; // [ A ]
+g.clean();            // Recursively deletes all the orphan nodes.
+g.nodes;              // [ root, A ]
+g.orphans;            // []
+g.leafs;              // [ A ]
 ```
+
