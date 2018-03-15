@@ -1,10 +1,10 @@
 {
   "name": "dag-solve",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "dag.js",
   "scripts": {
-    "test": "mocha -R spec ./test.js"
+    "test": "mocha --recursive ./tests/"
   },
   "repository": {
     "type": "git",
