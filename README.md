@@ -160,12 +160,12 @@ E.setFallback(3.456);
 D.setMath(123);
 g.debug();    // [ 123, 3.456, 100, 2.80975609..., 2.80975609... ]
 
-// Add a rouonding function between A and root;
+// Add a rounding function between A and root;
 const RND = g.makeNode('rounder').setRound(2);
 
 g.disconnect(A, g.root).connect(RND, g.root).connect(A, RND);
 g.debug(); // [ 123, 3.456, 100, 2.809756097560976, 2.81, 2.81 ]
-
+g.solve(); // 2.81
 ```
 # Use the solver
 Using the exact graph as above, we can get a solver function that can
@@ -196,15 +196,23 @@ const json = g.dump();
 ```
 which produces this JSON...
 ```json
-{
-  "G":[[0,[]],[1,[0]],[2,[]],[3,[1,2]],[4,[3,5,1]],[5,[2,1]]],
+{"G":[
+    [0,[]],
+    [1,[6]],
+    [2,[]],
+    [3,[1,2]],
+    [4,[3,5,1]],
+    [5,[2,1]],
+    [6,[0]]
+  ],
   "N":[
-    {"I":4,"N":"D","A":[],"M":10,"E":[],"F":[],"P":[]},
-    {"I":5,"N":"E","A":[4],"E":[[10,6],[3,200]],"F":[],"P":[]},
+    {"I":4,"N":"D","A":[],"E":[],"F":[],"P":["v"]},
+    {"I":5,"N":"E","A":[4],"D":3.456,"E":[[10,6],[3,200]],"F":[],"P":[]},
     {"I":3,"N":"C","A":[4],"E":[],"F":["vc","<",100,">=",12],"P":[]},
     {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"F":[],"P":[]},
     {"I":1,"N":"A","A":[3,5,4],"D":21,"M":"$1 * $2 / $3","E":[],"F":[],"P":[]},
-    {"I":0,"N":"ROOT","A":[1],"M":"$1","E":[],"F":[],"P":[]}
+    {"I":6,"N":"rounder","A":[1],"E":[],"R":2,"F":[],"P":[]},
+    {"I":0,"N":"ROOT","A":[6],"M":"$1","E":[],"F":[],"P":[]}
   ]
 }
 ```
@@ -212,7 +220,7 @@ which can be read back into a new graph...
 ```javascript
 const g2 = new DAG(); // A new DAG
 g2.read(json);        // Configure it by reading json
-g2.solve();           // 7.2
+g2.solve({v:10});     // 7.2
 g2 === g;             // False
 ```
 
