@@ -139,33 +139,35 @@ const C = g.makeNode('C').setFilter('vc', '<', 100, '>=', 12);
 const D = g.makeNode('D').setMath(10);
 const E = g.makeNode('E').addEnum(10, 6).addEnum(3, 200);
 g.connect(A, g.root);
-g.connect(C, A);   // In A: $1 === C
+g.connect(B, A);   // In A: $1 === B
 g.connect(C, B);   // In B: $1 === C
 g.connect(D, C);   // In C: $1 === D
-g.connect(E, B);   // In B: $2 === E
 g.connect(D, E);   // In E: $1 === D
+g.connect(D, A);   // In A: $3 === D
+g.connect(E, B);   // In B: $2 === E
 g.connect(E, A);   // In A: $2 === E
-g.connect(D, A);  // In A: $3 === D
 
-g.solve();    // 7.2
-g.debug();    // [ 10, 6, 12, 7.2, 7.2 ]
+
+g.solve();    // 30
+g.debug();    // [ 10,  6,   12,  18,  30,  30  ]
+g.topoNames;  // [ 'D', 'E', 'C', 'B', 'A', 'ROOT' ]
               // The result of each step in topo order
 
 D.setMath(3);
-g.solve();    // 800
-g.debug();    // [ 3, 200, 12, 800, 800 ]
+g.solve();    // 3.18
+g.debug();    // [ 3, 200, 12, 212, 3.18, 3.18  ]
 
 // Add a fallback to the enum
 E.setFallback(3.456);
 D.setMath(123);
-g.debug();    // [ 123, 3.456, 100, 2.80975609..., 2.80975609... ]
+g.debug();    // [ 123, 3.456, 100, 103.456, 3682.027.., 3682.027.. ]
 
 // Add a rounding function between A and root;
 const RND = g.makeNode('rounder').setRound(2);
 
 g.disconnect(A, g.root).connect(RND, g.root).connect(A, RND);
-g.debug(); // [ 123, 3.456, 100, 2.809756097560976, 2.81, 2.81 ]
-g.solve(); // 2.81
+g.debug(); // [ 123, 3.456, 100, 103.456, 3682.027..., 3682.03, 3682.03 ]
+g.solve(); // 3682.03
 ```
 # Use the solver
 Using the exact graph as above, we can get a solver function that can
@@ -176,16 +178,17 @@ D.setPath('v');
 
 // This means we can solve the graph by passing an object to
 // the solve method:
-g.solve({v:10}); // 7.2 The same as when the D.node had 
+g.solve({v:10}); // 30 The same as when the D.node had 
                  // a constant value of 10
 
 // Now get a standalone solver function from the graph
 const s = g.getSolver();
-[{v:1}, {v:2}, {v:3}, {v:4}].map(s); // [ 41.47, 20.74, 800, 10.37 ]
+[{v:1}, {v:2}, {v:3}, {v:4}].map(s); // [ 4.47, 8.94, 3.18, 17.89 ]
 
 // Go wild!
-Array(100).fill(1).map((e, i) => ({v:(123/i)})).map(s);
-// [ 0, 2.81, 3.46, ...
+Array(100).fill(1).map((e, i) => ({v:i})).map(s);
+// [ 0, 4.47, 8.94, 3.18, 17.89, 22.36, ... ]
+
 ```
 
 # Serialise and restoring a graph via JSON
@@ -196,11 +199,11 @@ const json = g.dump();
 ```
 which produces this JSON...
 ```json
-{"G":[
+{ "G":[
     [0,[]],
     [1,[6]],
-    [2,[]],
-    [3,[1,2]],
+    [2,[1]],
+    [3,[2]],
     [4,[3,5,1]],
     [5,[2,1]],
     [6,[0]]
@@ -210,7 +213,7 @@ which produces this JSON...
     {"I":5,"N":"E","A":[4],"D":3.456,"E":[[10,6],[3,200]],"F":[],"P":[]},
     {"I":3,"N":"C","A":[4],"E":[],"F":["vc","<",100,">=",12],"P":[]},
     {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"F":[],"P":[]},
-    {"I":1,"N":"A","A":[3,5,4],"D":21,"M":"$1 * $2 / $3","E":[],"F":[],"P":[]},
+    {"I":1,"N":"A","A":[2,4,5],"D":21,"M":"$1 * $2 / $3","E":[],"F":[],"P":[]},
     {"I":6,"N":"rounder","A":[1],"E":[],"R":2,"F":[],"P":[]},
     {"I":0,"N":"ROOT","A":[6],"M":"$1","E":[],"F":[],"P":[]}
   ]
@@ -220,8 +223,7 @@ which can be read back into a new graph...
 ```javascript
 const g2 = new DAG(); // A new DAG
 g2.read(json);        // Configure it by reading json
-g2.solve({v:10});     // 7.2
+g2.solve({v:10});     // 30
 g2 === g;             // False
 ```
-
 
