@@ -847,8 +847,8 @@ describe('A dag can be given a value/object to compute on', () => {
     'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
   };
 
-  const D2 = Array(10000).fill(data);
-  const D3 = Array(10000).fill(1).map((e, i) => [i]);
+  const D2 = Array(5000).fill(data);
+  const D3 = Array(5000).fill(1).map((e, i) => [i]);
 
   it('When given data, it can read and solve.', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
