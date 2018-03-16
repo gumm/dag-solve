@@ -1,5 +1,5 @@
 const assert = require('assert');
-const u = require('../utils.js');
+const u = require('../utils/utils.js');
 
 describe('The mathCleaner function', () => {
 

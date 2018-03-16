@@ -1,6 +1,12 @@
 const argRefSymbol = 'X';
 
 /**
+ * @param {*} m
+ * @returns {boolean}
+ */
+const isString = m => typeof m === 'string';
+
+/**
  * A strict same elements in same order comparison.
  * Example:
  *    console.log('Same Arrays:', sameArr([1, 2], [1, 2]));
@@ -127,7 +133,7 @@ const funcMaker = fn => {
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
   let f = alwaysUndef;
-  if (typeof m === 'string') {
+  if (isString(m)) {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}[${i}]`),
         mathCleaner(m));
@@ -136,7 +142,7 @@ const mathFunc = (m, a) => {
     }
   } else {
     [err, f] = funcMaker(m);
-    }
+  }
   return [err, f];
 };
 
@@ -334,5 +340,6 @@ module.exports = {
   safeJsonParse,
   mathCleaner,
   funcMaker,
-  sameArr
+  sameArr,
+  isString
 };
