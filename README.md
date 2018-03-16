@@ -190,6 +190,10 @@ Array(100).fill(1).map((e, i) => ({v:i})).map(s);
 // [ 0, 4.47, 8.94, 3.18, 17.89, 22.36, ... ]
 
 ```
+A note on the solver function: It is divorced from the graph, and changes
+to the graph won't be propagated to the solver function. If the graph
+changes, (either in structure, or in the set-up of any of its nodes) the
+solver function needs to be replaced.
 
 # Serialise and restoring a graph via JSON
 Once a graph is configured it can be dumped to JSON for storage, and read

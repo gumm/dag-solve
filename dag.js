@@ -398,9 +398,7 @@ class Node {
       const result = this._func(argArr, opt_d);
       // Make sure things like false, null, 0 don't trigger the fallback,
       // But NaN and undefined does.
-      return result === undefined
-          ? [null, this.fallback]
-          : [null, result];
+      return result === undefined ? [null, this.fallback] : [null, result];
     } else {
       this.clean()
       }
@@ -709,10 +707,10 @@ class DAG {
     return (opt_d) => {
       const r = cleanNodes.reduce((p, n) => {
         const [err, s] = n.solve(p, validTopoIds, opt_d);
-          errs.push(err);
-          p.push(s);
-          return p;
-        }, []);
+        errs.push(err);
+        p.push(s);
+        return p;
+      }, []);
       return debug ? r : u.tail(r);
     };
   }

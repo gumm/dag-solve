@@ -154,20 +154,17 @@ describe('Use the DAG to sort, disconnect an delete nodes nodes', () => {
       .connect(D, F);
 
   // Names
-  it('List the nodes names in insert order', () => {
-    be.equalsArrays(g.names, ['ROOT','A','B','C','D','E','F'])
-  });
-  it('List the nodes names in topo order', () => {
-    be.equalsArrays(g.topoNames, ['D','F','C','E','B','A','ROOT'])
-  });
+  it('List the nodes names in insert order',
+     () => {be.equalsArrays(g.names, ['ROOT', 'A', 'B', 'C', 'D', 'E', 'F'])});
+  it('List the nodes names in topo order',
+     () => {
+         be.equalsArrays(g.topoNames, ['D', 'F', 'C', 'E', 'B', 'A', 'ROOT'])});
 
   // IDs
-  it('List the nodes ids in insert order', () => {
-    be.equalsArrays(g.ids, [0,1,2,3,4,5,6])
-  });
-  it('List the nodes ids in topo order', () => {
-    be.equalsArrays(g.topoIds, [4,6,3,5,2,1,0])
-  });
+  it('List the nodes ids in insert order',
+     () => {be.equalsArrays(g.ids, [0, 1, 2, 3, 4, 5, 6])});
+  it('List the nodes ids in topo order',
+     () => {be.equalsArrays(g.topoIds, [4, 6, 3, 5, 2, 1, 0])});
 
   it('the graph has no orphans', () => {be.equalsArrays(g.orphans, [])});
   it('the graph can be topologically sorted',
@@ -712,7 +709,7 @@ describe('Nodes can access data from an array or object', () => {
     assert.strictEqual(g.solve(1.23), 1.23);
 
     const s = g.getSolver();
-    const arr = [1,2,3,4,5,6];
+    const arr = [1, 2, 3, 4, 5, 6];
     be.equalsArrays(arr.map(s), arr);
   })
 
@@ -856,10 +853,9 @@ describe('A dag can be given a value/object to compute on', () => {
     assert.strictEqual(g.solve(data), 0.55)
   });
 
-  it('Use the "debug" method to get the solution at each node', () => {
-    // This is the solution at each node in topo order
-    assert.deepStrictEqual(g.debug(data), [ 10, 3, 3, 0.55, 0.55 ])
-  });
+  it('Use the "debug" method to get the solution at each node',
+     () => {// This is the solution at each node in topo order
+            assert.deepStrictEqual(g.debug(data), [10, 3, 3, 0.55, 0.55])});
 
   it('The graph can be applied to an array of data', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);

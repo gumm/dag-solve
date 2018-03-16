@@ -8,7 +8,8 @@ const argRefSymbol = 'X';
  * @param {!Array.<*>} a
  * @param {!Array.<*>} b
  */
-const sameArr = (a, b) => a.length === b.length && a.every((c, i) => b[i] === c);
+const sameArr = (a, b) =>
+    a.length === b.length && a.every((c, i) => b[i] === c);
 
 /**
  * @param {?} t
@@ -135,7 +136,7 @@ const mathFunc = (m, a) => {
     }
   } else {
     [err, f] = funcMaker(m);
-  }
+    }
   return [err, f];
 };
 
@@ -240,7 +241,7 @@ const removeOrphans = G => {
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
-}
+  }
 
 /**
  * @param {!Node} n
