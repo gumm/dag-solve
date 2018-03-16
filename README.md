@@ -138,13 +138,13 @@ const B = g.makeNode('B').setMath('$1 + $2');
 const C = g.makeNode('C').setFilter('vc', '<', 100, '>=', 12);
 const D = g.makeNode('D').setMath(10);
 const E = g.makeNode('E').addEnum(10, 6).addEnum(3, 200);
-g.connect(A, g.root)
-g.connect(C, A)   // In A: $1 === C
-g.connect(C, B)   // In B: $1 === C
-g.connect(D, C)   // In C: $1 === D
-g.connect(E, B)   // In B: $2 === E
-g.connect(D, E)   // In E: $1 === D
-g.connect(E, A)   // In A: $2 === E
+g.connect(A, g.root);
+g.connect(C, A);   // In A: $1 === C
+g.connect(C, B);   // In B: $1 === C
+g.connect(D, C);   // In C: $1 === D
+g.connect(E, B);   // In B: $2 === E
+g.connect(D, E);   // In E: $1 === D
+g.connect(E, A);   // In A: $2 === E
 g.connect(D, A);  // In A: $3 === D
 
 g.solve();    // 7.2
@@ -187,4 +187,33 @@ const s = g.getSolver();
 Array(100).fill(1).map((e, i) => ({v:(123/i)})).map(s);
 // [ 0, 2.81, 3.46, ...
 ```
+
+# Serialise and restoring a graph via JSON
+Once a graph is configured it can be dumped to JSON for storage, and read
+back when needed. Using the above graph:
+```javascript
+const json = g.dump();
+```
+which produces this JSON...
+```json
+{
+  "G":[[0,[]],[1,[0]],[2,[]],[3,[1,2]],[4,[3,5,1]],[5,[2,1]]],
+  "N":[
+    {"I":4,"N":"D","A":[],"M":10,"E":[],"F":[],"P":[]},
+    {"I":5,"N":"E","A":[4],"E":[[10,6],[3,200]],"F":[],"P":[]},
+    {"I":3,"N":"C","A":[4],"E":[],"F":["vc","<",100,">=",12],"P":[]},
+    {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"F":[],"P":[]},
+    {"I":1,"N":"A","A":[3,5,4],"D":21,"M":"$1 * $2 / $3","E":[],"F":[],"P":[]},
+    {"I":0,"N":"ROOT","A":[1],"M":"$1","E":[],"F":[],"P":[]}
+  ]
+}
+```
+which can be read back into a new graph...
+```javascript
+const g2 = new DAG(); // A new DAG
+g2.read(json);        // Configure it by reading json
+g2.solve();           // 7.2
+g2 === g;             // False
+```
+
 
