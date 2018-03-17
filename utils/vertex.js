@@ -239,19 +239,29 @@ class Node {
   }
 
   // -------------------------------------------------------------[ Rounding ]--
+  /**
+   * @param {number} int
+   * @returns {Node}
+   */
   setRound(int) {
-    this._round = int;
 
-    if (u.isDef(int)) {
+    if (u.isNumber(int)) {
+      this._round = u.pRound(0)(int);
+
       this._path = [];
       this._math = undefined;
       this._enum = [];
       this._comparator = [];
+      this._errState = 'Changed';
     }
 
-    this._errState = 'Changed';
+
     return this;
   };
+
+  get round() {
+    return this._round;
+  }
 
   // -----------------------------------------------------------[ Comparison ]--
   /**
@@ -290,9 +300,10 @@ class Node {
       this._path = [];
       this._math = undefined;
       this._round = undefined;
+
+      this._errState = 'Changed';
     }
 
-    this._errState = 'Changed';
     return this;
   };
 
@@ -372,7 +383,7 @@ class Node {
       let [v1, cmp, v2, outputFormat] = this.comparator;
       const r1 = u.isString(v1) ?  X => X[u.getRefIndex(v1)] : () => v1;
       const r2 = u.isString(v2) ? X => X[u.getRefIndex(v2)] : () => v2;
-      const t = u.makeComparison(cmp);
+      const t = u.makeComparator(cmp);
       const outF = u.genOutput(outputFormat);
 
       this._func = X => {

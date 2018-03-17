@@ -60,13 +60,96 @@ const alwaysUndef = () => undefined;
 const alwaysFalse = () => false;
 
 /**
+ * @param {!Node} n
+ * @returns {function(!Array<!Node>, !Array<!Node>): !Array<!Node>}
+ */
+const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
+
+/**
+ * Find the biggest number in a list of numbers
+ * @param {!Array<!number>} arr
+ * @returns {!number}
+ */
+const max = arr => Math.max(...arr);
+
+/**
+ * Given an array of two-element arrays, and a key and value,
+ * return the array with a new two element array item, containing the
+ * key and value, added. This method does not allow the same elements to
+ * be added more than once.
+ * @param {!Array<!Array<*>>} arr
+ * @param {*} k
+ * @param {*} v
+ * @returns {!Array<!Array<*>>}
+ */
+const enumSet = (arr, k, v) => [...new Map(arr).set(k, v).entries()];
+
+/**
+ * Given an array of two-element arrays, and a key,
+ * remove all items where the first element of the inner array matches the key.
+ * @param {!Array<!Array<*>>} arr
+ * @param {*} k
+ */
+const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
+
+/**
+ * @param {!Node} n
+ * @returns {!number}
+ */
+const grabId = n => n._id;
+
+/**
+ * Return the last element of an array, or undefined if the array is empty.
+ * @param {!Array<*>} arr
+ * @returns {*}
+ */
+const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
+
+
+/**
+ * A generator function to produce consecutive ids, starting from
+ * n + 1 of n. If n is not given, use 0.
+ * @param {=number} opt_n
+ * @return {!Iterator<number>}
+ */
+function* idGen(opt_n) {
+  let i = opt_n ? opt_n + 1 : 0;
+  while (true) yield i++;
+}
+
+/**
+ * @param {!number} precision
+ * @returns {function(!number): number}
+ */
+const pRound = precision => {
+  const factor = Math.pow(10, precision);
+  return number => Math.round(number * factor) / factor;
+};
+
+/**
+ * Given a Json string, parse it without blowing up.
+ * @param json
+ * @returns {*}
+ */
+const safeJsonParse = json => {
+  // This function cannot be optimised, it's best to
+  // keep it small!
+  let parsed;
+  try {
+    parsed = JSON.parse(json);
+  } catch (e) {
+  }
+  return parsed;
+};
+
+/**
  * Given a predicate and a target value. return a function that takes a
  * value to test against the predicate.
  * Junk input always results in a failing test.
  * @param {!string} c Comparator
  * @returns {!function(!number): boolean}
  */
-const makeComparison = (c) => {
+const makeComparator = (c) => {
   const m = {
     '!=': (v1, v2) => v1 != v2,
     '==': (v1, v2) => v1 == v2,
@@ -247,89 +330,6 @@ const removeOrphans = G => {
   return G;
 };
 
-/**
- * A generator function to produce consecutive ids, starting from
- * n + 1 of n. If n is not given, use 0.
- * @param {=number} opt_n
- * @return {!Iterator<number>}
- */
-function* idGen(opt_n) {
-  let i = opt_n ? opt_n + 1 : 0;
-  while (true) yield i++;
-  }
-
-/**
- * @param {!Node} n
- * @returns {function(!Array<!Node>, !Array<!Node>): !Array<!Node>}
- */
-const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
-
-/**
- * Find the biggest number in a list of numbers
- * @param {!Array<!number>} arr
- * @returns {!number}
- */
-const max = arr => Math.max(...arr);
-
-/**
- * Given a Json string, parse it without blowing up.
- * @param json
- * @returns {*}
- */
-const safeJsonParse = json => {
-  // This function cannot be optimised, it's best to
-  // keep it small!
-  let parsed;
-  try {
-    parsed = JSON.parse(json);
-  } catch (e) {
-    }
-  return parsed;
-};
-
-/**
- * Given an array of two-element arrays, and a key and value,
- * return the array with a new two element array item, containing the
- * key and value, added. This method does not allow the same elements to
- * be added more than once.
- * @param {!Array<!Array<*>>} arr
- * @param {*} k
- * @param {*} v
- * @returns {!Array<!Array<*>>}
- */
-const enumSet = (arr, k, v) => [...new Map(arr).set(k, v).entries()];
-
-/**
- * Given an array of two-element arrays, and a key,
- * remove all items where the first element of the inner array matches the key.
- * @param {!Array<!Array<*>>} arr
- * @param {*} k
- */
-const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
-
-/**
- * @param {!Node} n
- * @returns {!number}
- */
-const grabId = n => n._id;
-
-/**
- * Return the last element of an array, or undefined if the array is empty.
- * @param {!Array<*>} arr
- * @returns {*}
- */
-const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
-
-
-/**
- * @param {!number} precision
- * @returns {function(!number): number}
- */
-const pRound = precision => {
-  const factor = Math.pow(10, precision);
-  return number => Math.round(number * factor) / factor;
-};
-
 module.exports = {
   alwaysUndef,
   isDef,
@@ -353,6 +353,6 @@ module.exports = {
   isRefString,
   getRefIndex,
   isNumber,
-  makeComparison,
+  makeComparator,
   genOutput
 };

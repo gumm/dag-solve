@@ -1,5 +1,6 @@
 const be = require('be-sert');
 const assert = require('assert');
+const Node = require('../utils/vertex.js');
 const DAG = require('../dag.js');
 
 describe('Nodes can do math.', () => {
@@ -276,7 +277,6 @@ describe('Nodes can make comparisons', () => {
 
 });
 
-
 describe('Nodes can do rounding', () => {
   const g = new DAG();
   const A = g.makeNode('A');
@@ -386,4 +386,37 @@ describe('Nodes can have a default or fallback value', () => {
         m.connect(m.makeNode('C').setFallback('fallback'), m.root);
         assert.strictEqual(m.solve(), 'fallback');
       });
+});
+
+describe('Nodes can be dumped.', () => {
+  const g = new DAG();
+  const A = g.makeNode('A').setMath('1 + 1').setFallback(5);
+  const dumpedNode = {
+    I: 1,
+    N: 'A',
+    A: [],
+    D: 5,
+    M: '1 + 1',
+    E: [],
+    R: undefined,
+    P: [],
+    C: []
+  };
+  it('A dumped node is an object, not a string.', () => {
+    assert.deepStrictEqual(A.dump(), dumpedNode);
+  });
+  it('A dumped node object can be used when creating a new node', () => {
+    const B = new Node(10, 'blah', A.dump());
+    assert.strictEqual(B.id, A.id);
+    assert.strictEqual(B.name, A.name);
+    assert.strictEqual(B.fallback, A.fallback);
+    assert.deepStrictEqual(B.args, A.args);
+    assert.deepStrictEqual(B.path, A.path);
+    assert.deepStrictEqual(B.math, A.math);
+    assert.deepStrictEqual(B.round, A.round);
+    assert.deepStrictEqual(B.comparator, A.comparator);
+    assert.deepStrictEqual(B.enum, A.enum);
+  });
+
+
 });
