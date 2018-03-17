@@ -158,9 +158,124 @@ describe('Nodes can do enumeration', () => {
     assert.strictEqual(g.solve(4), 5);
     assert.strictEqual(g.solve(5), undefined);
   });
+});
 
+describe('Nodes can make comparisons', () => {
+  const g = new DAG();
+  const IN1 = g.makeNode('IN1').setPath(0);
+  const IN2 = g.makeNode('IN2').setPath(1);
+  const COMP = g.makeNode('COMP');
+  g.connect(COMP, g.root)
+      .connect(IN1, COMP)
+      .connect(IN2, COMP);
+
+  it('It can test Equality (==)', () => {
+    COMP.setComparator('$1', '==', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), false);
+    assert.strictEqual(g.solve([1, 2]), false);
+    assert.strictEqual(g.solve([2, 2]), true);
+    assert.strictEqual(g.solve([2.0, 2]), true);
+    assert.strictEqual(g.solve(['2', 2]), true);
+  });
+
+  it('It can test Inequality (!=)', () => {
+    COMP.setComparator('$1', '!=', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), true);
+    assert.strictEqual(g.solve([1, 2]), true);
+    assert.strictEqual(g.solve([2, 2]), false);
+    assert.strictEqual(g.solve([2.0, 2]), false);
+  });
+
+  it('It can test Identity / strict equality (===)', () => {
+    COMP.setComparator('$1', '===', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), false);
+    assert.strictEqual(g.solve([1, 2]), false);
+    assert.strictEqual(g.solve([2, 2]), true);
+    assert.strictEqual(g.solve([2.0, 2]), true);
+    assert.strictEqual(g.solve(['2', 2]), false);
+  });
+
+  it('It can test Non-identity / strict inequality (!==)', () => {
+    COMP.setComparator('$1', '!==', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), true);
+    assert.strictEqual(g.solve([1, 2]), true);
+    assert.strictEqual(g.solve([2, 2]), false);
+    assert.strictEqual(g.solve([2.0, 2]), false);
+    assert.strictEqual(g.solve(['2', 2]), true);
+  });
+
+  it('It can use the Greater than operator (>)', () => {
+    COMP.setComparator('$1', '>', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), true);
+    assert.strictEqual(g.solve([1, 2]), false);
+  });
+
+  it('It can use the Greater than or equal operator (>=)', () => {
+    COMP.setComparator('$1', '>=', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), true);
+    assert.strictEqual(g.solve([2, 2]), true);
+    assert.strictEqual(g.solve([1, 2]), false);
+  });
+
+  it('It can use the Less than operator (<)', () => {
+    COMP.setComparator('$1', '<', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), false);
+    assert.strictEqual(g.solve([1, 2]), true);
+  });
+
+  it('It can use the Less than or equal operator (<=)', () => {
+    COMP.setComparator('$1', '<=', '$2', 'tf');
+    assert.strictEqual(g.solve([2, 1]), false);
+    assert.strictEqual(g.solve([2, 2]), true);
+    assert.strictEqual(g.solve([1, 2]), true);
+  });
+
+  it('It can compare input node values with a constant', () => {
+    COMP.setComparator('$1', '===', 5, 'tf');
+    assert.strictEqual(g.solve([5, 11]), true);
+    COMP.setComparator('$1', '===', 5, 'tf');
+    assert.strictEqual(g.solve([3, 11]), false);
+
+    COMP.setComparator(5, '===', '$1', 'tf');
+    assert.strictEqual(g.solve([5, 11]), true);
+    COMP.setComparator(5, '===', '$1', 'tf');
+    assert.strictEqual(g.solve([3, 11]), false);
+
+    COMP.setComparator('$2', '===', 100, 'tf');
+    assert.strictEqual(g.solve([2, 100]), true);
+    COMP.setComparator('$2', '===', 100, 'tf');
+    assert.strictEqual(g.solve([2, 90]), false);
+
+    COMP.setComparator(5, '===', 5, 'tf');
+    assert.strictEqual(g.solve([100, 200]), true);
+  });
+
+  it('It can output true or false', () => {
+    COMP.setComparator('$1', '>', '$2', 'tf');
+    assert.strictEqual(g.solve([1, 2]), false);
+    assert.strictEqual(g.solve([2, 1]), true);
+  });
+
+  it('It can output 0 or 1', () => {
+    COMP.setComparator('$1', '>', '$2', '10');
+    assert.strictEqual(g.solve([1, 2]), 0);
+    assert.strictEqual(g.solve([2, 1]), 1);
+  });
+
+  it('It can output the first value or undefined', () => {
+    COMP.setComparator('$1', '>', '$2', 'vu');
+    assert.strictEqual(g.solve([1, 2]), undefined);
+    assert.strictEqual(g.solve([2, 1]), 2);
+  });
+
+  it('It can output the first value or the second value', () => {
+    COMP.setComparator('$1', '>', '$2', 'ab');
+    assert.strictEqual(g.solve([1, 22]), 22);
+    assert.strictEqual(g.solve([33, 22]), 33);
+  });
 
 });
+
 
 describe('Nodes can do rounding', () => {
   const g = new DAG();
@@ -173,240 +288,6 @@ describe('Nodes can do rounding', () => {
     A.setRound(2);
     assert.strictEqual(g.solve(), 12.35)
   });
-});
-
-describe('Nodes can do pass-filtering', () => {
-  const g = new DAG();
-  const A = g.makeNode('A');
-  const B = g.makeNode('B');
-  g.connect(B, A).connect(A, g.root);
-  B.setMath(3);
-
-  // Bigger than (High-Pass)
-  it('Test value bigger than n (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '>', 2);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value bigger than n (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '>', 4);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  it('Test value bigger or eq than n (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '>=', 3);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value bigger or eq than n (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '>=', 4);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  // Smaller than (Low Pass)
-  it('Test value smaller than n (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<', 4);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value smaller than n (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<', 2);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  it('Test value smaller or eq than n (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<=', 3);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value smaller or eq than n (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<=', 2);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  // Between values (Band Pass)
-  it('Test value between n and p (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<', 4, '>', 2);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value between n and p (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<', 4, '>', 3);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  // Non contradicting nonsense
-  it('If both sets are given, and their predicates are the same,' +
-      ' we discard the redundant one. [>]',
-      () => {
-        // Value must be: Bigger than 2 AND bigger than 5
-        B.setMath(3);
-        A.setFilter('vc', '>', 2, '>', 5);
-        assert.strictEqual(g.solve(), 5);
-      });
-
-  it('If both sets are given, and their predicates are the same,' +
-      ' we discard the redundant one [<]',
-      () => {
-        // Value must be: Bigger than 2 AND bigger than 5
-        B.setMath(3);
-        A.setFilter('vc', '<', 2, '<', 5);
-        assert.strictEqual(g.solve(), 2);
-      });
-
-  it('If both sets are given, and their predicates are the same,' +
-      ' we discard the redundant one [<]',
-      () => {
-        // Value must be: Bigger than 2 AND bigger than 5
-        B.setMath(3);
-        A.setFilter('vc', '<', 5, '<', 2);
-        assert.strictEqual(g.solve(), 2);
-      });
-
-  it('If both sets are given, and their predicates are in the same direction,' +
-      ' and their values are the same, the most restrictive ' +
-      'sense is used',
-      () => {
-        // Value must be: Bigger than 2 AND bigger than 5
-        B.setMath(3);
-        A.setFilter('vu', '<=', 3, '<', 3);
-        assert.strictEqual(g.solve(), undefined);
-
-        // Regardless of the order
-        A.setFilter('vu', '<', 3, '<=', 3);
-        assert.strictEqual(g.solve(), undefined);
-
-        // Regardless of the order
-        A.setFilter('vu', '<=', 3, '<=', 3);
-        assert.strictEqual(g.solve(), 3);
-
-        // Clamped values also work
-        A.setFilter('vc', '<', 3, '<=', 3);
-        assert.strictEqual(g.solve(), 3);
-      });
-
-  // Outside of band  values (Band Fail) are not allowed.
-  it('Predicates that do not define a *inclusive* band return undefined',
-      () => {
-        // For simplicity, our pass filter is an *AND* filter, and while the
-        // below could form an exclusion band if the predicates were "OR"ed, we
-        // don't allow for that, and interpret the statement as:
-        // 3 is bigger than 10 AND 3 is smaller than 4, which is clearly false
-        B.setMath(3);
-        A.setFilter('vu', '>', 10, '<', 4);
-        assert.strictEqual(g.solve(), undefined);
-
-
-        // Clamping values when the input defines an exclusion band is
-        // indeterminate. It could clamp to any of the target values, and the
-        // behavior is unpredictable.
-        // The correct way of handling this is to make this undefined, but with
-        // the amount of edge case testing required, I could simply not be
-        // bothered. Fuck the user for even trying this.
-
-        // Here it clamps to the higher value
-        A.setFilter('vc', '>', 10, '<', 4);
-        assert.strictEqual(g.solve(), 10);
-
-        // Here it clamps to the lower value.
-        B.setMath(10);
-        A.setFilter('vc', '<', 9, '>', 15);
-        assert.strictEqual(g.solve(), 9);
-
-      });
-
-  // Exactly equal
-  it('Test value exactly equal (Pass)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '==', 3);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('Test value exactly equal (Fail)', () => {
-    B.setMath(3);
-    A.setFilter('vu', '==', 3.00001);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  // Output formatting.
-  it('"vu" mode passes with the value', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<=', 3);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('"vu" mode fails with undefined', () => {
-    B.setMath(3);
-    A.setFilter('vu', '<', 3);
-    assert.strictEqual(g.solve(), undefined)
-  });
-
-  it('"10" mode passes with the 1', () => {
-    B.setMath(3);
-    A.setFilter('10', '<=', 3);
-    assert.strictEqual(g.solve(), 1)
-  });
-
-  it('"10" mode fails with 0', () => {
-    B.setMath(3);
-    A.setFilter('10', '<', 3);
-    assert.strictEqual(g.solve(), 0)
-  });
-
-  it('"tf" mode passes with true', () => {
-    B.setMath(3);
-    A.setFilter('tf', '<=', 3);
-    assert.strictEqual(g.solve(), true)
-  });
-
-  it('"tf" mode fails with false', () => {
-    A.setFilter('tf', '<', 3);
-    assert.strictEqual(g.solve(), false)
-  });
-
-  it('"vc" mode passes with the value', () => {
-    B.setMath(3);
-    A.setFilter('vc', '>', 1);
-    assert.strictEqual(g.solve(), 3)
-  });
-
-  it('"vc" fails with the clamping value', () => {
-    B.setMath(3);
-    A.setFilter('vc', '>', 100);
-    assert.strictEqual(g.solve(), 100)
-  });
-
-  // Range clamping (inclusive)
-  it('"vc" can clamp to the upper limit. 6 should be clamped to 5', () => {
-    B.setMath(6);
-    A.setFilter('vc', '<', 5, '>', 2);
-    assert.strictEqual(g.solve(), 5);
-  });
-
-  it('"vc" can clamp to the lower limit. 1 should be clamped to 2', () => {
-    B.setMath(1);
-    A.setFilter('vc', '<', 5, '>', 2);
-    assert.strictEqual(g.solve(), 2);
-  });
-
-  it('"vc" passes the value without clamping. 3 should pass through as 3',
-      () => {
-        B.setMath(1);
-        A.setFilter('vc', '<', 5, '>', 2);
-        // Clamped to the limit
-        assert.strictEqual(g.solve(), 2);
-      });
-
 });
 
 describe('Nodes can access data from an array or object', () => {
@@ -450,32 +331,32 @@ describe('Nodes can have a default or fallback value', () => {
   B.setMath(10);
 
   it('Without a fallback value, the node fails with undefined', () => {
-    A.setFilter('vu', '<', 5);
+    A.setComparator('$1', '<', 5, 'vu');
     assert.strictEqual(g.solve(), undefined)
   });
 
   it('With a fallback value, the node fails to the fallback', () => {
-    A.setFilter('vu', '<', 5);
+    A.setComparator('$1', '<', 5,  'vu');
     A.setFallback(100);
     assert.strictEqual(g.solve(), 100)
   });
 
   it('The fallback value can be a string', () => {
-    A.setFilter('vu', '<', 5);
+    A.setComparator('$1', '<', 5,  'vu');
     A.setFallback('string');
     assert.strictEqual(g.solve(), 'string')
   });
 
   it('The fallback value can be a boolean', () => {
-    A.setFilter('vu', '<', 5);
+    A.setComparator('$1', '<', 5,  'vu');
     A.setFallback(false);
     assert.strictEqual(g.solve(), false)
   });
 
   it('The fallback value can be a number', () => {
-    A.setFilter('vu', '<', 5);
-    A.setFallback('fallback');
-    assert.strictEqual(g.solve(), 'fallback')
+    A.setComparator('$1', '<', 5,  'vu');
+    A.setFallback(3);
+    assert.strictEqual(g.solve(), 3)
   });
 
   it('A failing math node invokes the fallback', () => {
@@ -494,7 +375,7 @@ describe('Nodes can have a default or fallback value', () => {
   });
 
   it('A failing filter node invokes the fallback', () => {
-    A.setFilter('vu', '<', 5);
+    A.setComparator('$1', '<', 5, 'vu');
     A.setFallback('fallback');
     assert.strictEqual(g.solve(), 'fallback');
   });

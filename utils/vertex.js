@@ -42,10 +42,10 @@ class Node {
     this._enum = [];
 
     /**
-     * @type {!Array<!string|!number|undefined>}
+     * @type {!Array<!string|!number>}
      * @private
      */
-    this._filter = [];
+    this._comparator = [];
 
     /**
      * @type {function(...*): (undefined|*)}
@@ -87,8 +87,8 @@ class Node {
       this.setMath(obj.M);
       obj.E.forEach(e => this.addEnum(...e));
       this.setRound(obj.R);
-      this.setFilter(...obj.F);
       this.setPath(...obj.P);
+      this.setComparator(...obj.C);
     }
   }
 
@@ -114,8 +114,8 @@ class Node {
       M: this._math,
       E: this._enum,
       R: this._round,
-      F: this._filter,
-      P: this._path
+      P: this._path,
+      C: this._comparator
     };
   }
 
@@ -196,7 +196,7 @@ class Node {
 
     if (this._path.length) {
       this._enum = [];
-      this._filter = [];
+      this._comparator = [];
       this._round = undefined;
       this._math = undefined;
     }
@@ -224,7 +224,7 @@ class Node {
       this._path = [];
       this._enum = [];
       this._round = undefined;
-      this._filter = [];
+      this._comparator = [];
     }
 
     this._errState = 'Changed';
@@ -246,17 +246,22 @@ class Node {
       this._path = [];
       this._math = undefined;
       this._enum = [];
-      this._filter = [];
+      this._comparator = [];
     }
 
     this._errState = 'Changed';
     return this;
   };
 
-  // ---------------------------------------------------------------[ Filter ]--
+  // -----------------------------------------------------------[ Comparison ]--
   /**
-   * @param {!string} rv Result value. What is passed along if the filter
-   *    either passes or fails. The only allowed values are:
+   * Comparison operators
+   * @param {number|string} v1 Value with which to test the predicate
+   * @param {!string} cmp Comparison operator. Must be one of:
+   *    ==, <=, >=, <, >
+   * @param {number|string} v2 Value with which to test the predicate
+   * @param {!string} outputFormat Result value. What is passed along
+   *    if the comparison either passes or fails. The only allowed values are:
    *    "vu" - The input value on pass, else undefined
    *    "10" - The number 1 on pass, else the number 0
    *    "tf" - The boolean true if passed, else false.
@@ -269,28 +274,31 @@ class Node {
    *                  f(4) == 4
    *                  f(5) == 5
    *                  f(5.0001) == 5  <- Clamped Here
-   * @param {!string} p1 Predicate. Must be one of:
-   *    ==, <=, >=, <, >
-   * @param {!number|undefined} v1 Value with which to test the predicate
-   * @param {!string=} p2 Predicate. A second predicate so we can do
-   *    range filtering. Must be one of:
-   *    ==, <=, >=, <, >
-   * @param {!number=} v2 Value with which to test the 2nd predicate
    * @returns {Node}
    */
-  setFilter(rv, p1, v1, p2, v2) {
-    if ([rv, p1, v1, p2, v2].filter(e => u.isDef(e)).length) {
-      const f = [rv, p1, v1, p2, v2];
+  setComparator(v1, cmp, v2, outputFormat) {
+    let isClean = true;
+    isClean = (u.isNumber(v1) || u.isRefString(v1)) && isClean;
+    isClean = (["!=", "!==", "==", "===", "<=", ">=", "<", ">"].includes(cmp)) && isClean;
+    isClean = (u.isNumber(v2) || u.isRefString(v2)) && isClean;
+    isClean = (["vu", "10", "tf", "ab"].includes(outputFormat)) && isClean;
 
-      this._path = [];
-      this._filter = [...f];
-      this._math = undefined;
+    if (isClean) {
+      this._comparator = [v1, cmp, v2, outputFormat];
+
       this._enum = [];
+      this._path = [];
+      this._math = undefined;
+      this._round = undefined;
     }
 
     this._errState = 'Changed';
     return this;
   };
+
+  get comparator() {
+    return this._comparator;
+  }
 
   // -----------------------------------------------------------------[ Enum ]--
   /**
@@ -307,7 +315,7 @@ class Node {
     this._path = [];
     this._math = undefined;
     this._round = undefined;
-    this._filter = [];
+    this._comparator = [];
 
     this._errState = 'Changed';
     return this;
@@ -342,15 +350,10 @@ class Node {
 
       // Make it so you can read values from other nodes as output in an
       // enum.
-      const r = this.enum.map(([k,v]) => {
-        if (u.isString(v)) {
-          const indexRef = parseInt(v.split('$').join(''), 10);
-          if (!isNaN(indexRef)) {
-            return [k, X => X[indexRef - 1]];
-          }
-        }
-        return [k, () => v];
-      });
+      const r = this.enum.map(([k,v]) => (u.isString(v) && u.isRefString(v))
+          ? [k, X => X[u.getRefIndex(v)]]
+          : [k, () => v]
+      );
 
       const m = new Map(r);
       this._func = X => m.get(X[0]) ? m.get(X[0])(X) : undefined;
@@ -363,14 +366,25 @@ class Node {
       this._func = X => r(X[0]);
       this._errState = null;
 
-      // This node filtering
-    } else if (this._filter && this._filter.length) {
-      [this._errState, this._func] = u.parseFilter(this._filter);
+      // This node is a comparator
+    } else if (this.comparator && this.comparator.length) {
+
+      let [v1, cmp, v2, outputFormat] = this.comparator;
+      const r1 = u.isString(v1) ?  X => X[u.getRefIndex(v1)] : () => v1;
+      const r2 = u.isString(v2) ? X => X[u.getRefIndex(v2)] : () => v2;
+      const t = u.makeComparison(cmp);
+      const outF = u.genOutput(outputFormat);
+
+      this._func = X => {
+        const [s1, s2]  = [r1(X),  r2(X)];
+        return outF(t(s1, s2), s1, s2);
+      };
+      this._errState = null;
 
       // This node can access data on a path.
     } else if (this._path && this._path.length) {
       if (u.sameArr(this._path, [null])) {
-        // When the path was null, just return the data...
+        // When the path is null, just return the data...
         this._func = (X, data) => data;
       } else {
         this._func = (X, data) => R.pathOr(undefined, this._path)(data);

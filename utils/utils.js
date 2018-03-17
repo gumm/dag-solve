@@ -1,10 +1,36 @@
 const argRefSymbol = 'X';
 
 /**
+ * @param {*} x
+ * @return {!string}
+ */
+const whatType = x => typeof x;
+
+
+/**
+ * @param {*} n
+ * @return {!boolean}
+ */
+const isNumber = n =>
+    whatType(n) === 'number' && !Number.isNaN(/** @type {number}*/ (n));
+
+/**
+ * @param {*} n
+ * @return {!boolean}
+ */
+const isString = n => whatType(n) === 'string';
+
+/**
  * @param {*} m
  * @returns {boolean}
  */
-const isString = m => typeof m === 'string';
+const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
+
+/**
+ * @param {!String} m Something like $1
+ * @returns {number}
+ */
+const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
 
 /**
  * A strict same elements in same order comparison.
@@ -37,58 +63,41 @@ const alwaysFalse = () => false;
  * Given a predicate and a target value. return a function that takes a
  * value to test against the predicate.
  * Junk input always results in a failing test.
- * @param {!string} p Predicate
- * @param {!number} pVal A value
+ * @param {!string} c Comparator
  * @returns {!function(!number): boolean}
  */
-const makeTest = (p, pVal) => {
+const makeComparison = (c) => {
   const m = {
-    '==': v => v === pVal,
-    '<=': v => v <= pVal,
-    '>=': v => v >= pVal,
-    '<': v => v < pVal,
-    '>': v => v > pVal
+    '!=': (v1, v2) => v1 != v2,
+    '==': (v1, v2) => v1 == v2,
+    '!==': (v1, v2) => v1 !== v2,
+    '===': (v1, v2) => v1 === v2,
+    '<=': (v1, v2) => v1 <= v2,
+    '>=': (v1, v2) => v1 >= v2,
+    '<': (v1, v2) => v1 < v2,
+    '>': (v1, v2) => v1 > v2
   };
-  return m[p] || alwaysFalse;
+  return m[c] || alwaysFalse;
 };
 
 /**
  * @param {!string} rv Return value type. Can be:
  *    'vu': Pass the input value through if it passes and undefined if it fails.
  *    '10': Pass the number 1 if it passes, else 0
- *    'tf': Pass with true, else fail.
+ *    'tf': Pass with true, else fail.s
+ *    'ab': First value if it passes else second value
  *    Junk input always results in a failing test.
- * @param {function(*):boolean} test
- * @param {=number} c A clamp value.
- * @returns {*|(function(*): boolean)}
+ * @returns {(function(boolean, number, number): (undefined|boolean|number))}
  */
-const makeResult = (rv, test, c) => {
+const genOutput = rv => {
   const m = {
-    'vu': v => test(v) ? v : undefined,
-    '10': v => test(v) ? 1 : 0,
-    'tf': v => test(v),
-    'vc': v => test(v) ? v : c
+    'vu': (b, v1, v2) => b ? v1 : undefined,
+    '10': (b, v1, v2) => b ? 1 : 0,
+    'tf': (b, v1, v2) => b,
+    'ab': (b, v1, v2) => b ? v1 : v2
   };
   return m[rv] || alwaysUndef;
 };
-
-const parseFilter = arr => {
-  const [rv, p1, v1, p2, v2] = arr;
-  const P1 = makeTest(p1, v1);
-  const R1 = makeResult(rv, P1, v1);
-  let f = v => R1(v);
-
-  if (p2 && isDef(v2)) {
-    const P2 = makeTest(p2, v2);
-    const R2 = makeResult(rv, P2, v2);
-    f = v => R1(v) && R2(v);
-    if (rv === 'vc') {
-      f = v => R1(v) === v1 ? v1 : R2(v) === v2 ? v2 : v;
-    }
-    }
-  return [null, X => f(X[0])];
-};
-
 
 /**
  * Given a string, sanitize it and only allow numbers and arithmetic
@@ -328,7 +337,6 @@ module.exports = {
   enumUnSet,
   mathFunc,
   pRound,
-  parseFilter,
   idGen,
   topoSort,
   leafNodes,
@@ -341,5 +349,10 @@ module.exports = {
   mathCleaner,
   funcMaker,
   sameArr,
-  isString
+  isString,
+  isRefString,
+  getRefIndex,
+  isNumber,
+  makeComparison,
+  genOutput
 };

@@ -135,9 +135,9 @@ const DAG = require('dag-solve').DAG;
 const g = new DAG();
 const A = g.makeNode('A').setMath('$1 * $2 / $3').setFallback(21);
 const B = g.makeNode('B').setMath('$1 + $2');
-const C = g.makeNode('C').setFilter('vc', '<', 100, '>=', 12);
+const C = g.makeNode('C').setComparator('$1', '<', 100, 'ab');
 const D = g.makeNode('D').setMath(10);
-const E = g.makeNode('E').addEnum(10, 6).addEnum(3, 200);
+const E = g.makeNode('E').addEnum(10, 0.1).addEnum(3, -5);
 g.connect(A, g.root);
 g.connect(B, A);   // In A: $1 === B
 g.connect(C, B);   // In B: $1 === C
@@ -148,14 +148,14 @@ g.connect(E, B);   // In B: $2 === E
 g.connect(E, A);   // In A: $2 === E
 
 
-g.solve();    // 30
-g.debug();    // [ 10,  6,   12,  18,  30,  30  ]
+g.solve();    // 1010
+g.debug();    // [ 10, 0.1, 10, 10.1, 1010, 1010  ]
 g.topoNames;  // [ 'D', 'E', 'C', 'B', 'A', 'ROOT' ]
               // The result of each step in topo order
 
 D.setMath(3);
-g.solve();    // 3.18
-g.debug();    // [ 3, 200, 12, 212, 3.18, 3.18  ]
+g.solve();    // 1.2
+g.debug();    // [ 3, -5, 3, -2, 1.2, 1.2  ]
 
 // Add a fallback to the enum
 E.setFallback(3.456);
@@ -178,16 +178,16 @@ D.setPath('v');
 
 // This means we can solve the graph by passing an object to
 // the solve method:
-g.solve({v:10}); // 30 The same as when the D.node had 
+g.solve({v:10}); // 1010 The same as when the D.node had 
                  // a constant value of 10
 
 // Now get a standalone solver function from the graph
 const s = g.getSolver();
-[{v:1}, {v:2}, {v:3}, {v:4}].map(s); // [ 4.47, 8.94, 3.18, 17.89 ]
+[{v:1}, {v:2}, {v:3}, {v:4}].map(s); // [ 1.29, 3.16, 1.2, 8.63 ]
 
 // Go wild!
 Array(100).fill(1).map((e, i) => ({v:i})).map(s);
-// [ 0, 4.47, 8.94, 3.18, 17.89, 22.36, ... ]
+// [ 0, 1.29, 3.16, 1.2, 8.63, 12.23,...   ]
 
 ```
 A note on the solver function: It is divorced from the graph, and changes
@@ -203,7 +203,7 @@ const json = g.dump();
 ```
 which produces this JSON...
 ```json
-{ "G":[
+{ "G": [
     [0,[]],
     [1,[6]],
     [2,[1]],
@@ -213,13 +213,13 @@ which produces this JSON...
     [6,[0]]
   ],
   "N":[
-    {"I":4,"N":"D","A":[],"E":[],"F":[],"P":["v"]},
-    {"I":5,"N":"E","A":[4],"D":3.456,"E":[[10,6],[3,200]],"F":[],"P":[]},
-    {"I":3,"N":"C","A":[4],"E":[],"F":["vc","<",100,">=",12],"P":[]},
-    {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"F":[],"P":[]},
-    {"I":1,"N":"A","A":[2,4,5],"D":21,"M":"$1 * $2 / $3","E":[],"F":[],"P":[]},
-    {"I":6,"N":"rounder","A":[1],"E":[],"R":2,"F":[],"P":[]},
-    {"I":0,"N":"ROOT","A":[6],"M":"$1","E":[],"F":[],"P":[]}
+    {"I":4,"N":"D","A":[],"E":[],"P":["v"],"C":[]},
+    {"I":5,"N":"E","A":[4],"D":3.456,"E":[[10,0.1],[3,-5]],"P":[],"C":[]},
+    {"I":3,"N":"C","A":[4],"E":[],"P":[],"C":["$1","<",100,"ab"]},
+    {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"P":[],"C":[]},
+    {"I":1,"N":"A","A":[2,4,5],"D":21,"M":"$1 * $2 / $3","E":[],"P":[],"C":[]},
+    {"I":6,"N":"rounder","A":[1],"E":[],"R":2,"P":[],"C":[]},
+    {"I":0,"N":"ROOT","A":[6],"M":"$1","E":[],"P":[],"C":[]}
   ]
 }
 ```
@@ -227,7 +227,7 @@ which can be read back into a new graph...
 ```javascript
 const g2 = new DAG(); // A new DAG
 g2.read(json);        // Configure it by reading json
-g2.solve({v:10});     // 30
+g2.solve({v:10});     // 1010
 g2 === g;             // False
 ```
 

@@ -355,15 +355,11 @@ describe('When DAG computes,', () => {
 
 describe('A dag can be given a value/object to compute on', () => {
   const g = new DAG();
-  const A = g.makeNode('A');
-  const C = g.makeNode('C');
-  const D = g.makeNode('D');
-  const E = g.makeNode('E');
+  const A = g.makeNode('A').setMath('($1 + 2.5) / $2');
+  const C = g.makeNode('C').setMath(3);
+  const D = g.makeNode('D').setMath(10);
+  const E = g.makeNode('E').setComparator('$1', '>', 10, 'ab');
   g.connect(C, E).connect(E, A).connect(D, A).connect(A, g.root);
-  D.setMath(10);
-  C.setMath(3);
-  A.setMath('($1 + 2.5) / $2');
-  E.setFilter('vu', '>', -1, '<=', 100);
 
   const data = {
     'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
@@ -375,12 +371,12 @@ describe('A dag can be given a value/object to compute on', () => {
   it('When given data, it can read and solve.', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
     C.setPath('SOME', 2, 'weird', 'data', 3, 1);
-    assert.strictEqual(g.solve(data), 0.55)
+    assert.strictEqual(g.solve(data), 1.25)
   });
 
   it('Use the "debug" method to get the solution at each node',
      () => {// This is the solution at each node in topo order
-            assert.deepStrictEqual(g.debug(data), [10, 3, 3, 0.55, 0.55])});
+            assert.deepStrictEqual(g.debug(data), [10, 3, 10, 1.25, 1.25])});
 
   it('The graph can be applied to an array of data', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
@@ -407,17 +403,12 @@ describe('A dag can be given a value/object to compute on', () => {
 
 describe('A DAG can be serialized and de-serialized', () => {
   const g = new DAG();
-  const A = g.makeNode('A');
-  const B = g.makeNode('B');
-  const C = g.makeNode('C');
-  const D = g.makeNode('D');
-  const E = g.makeNode('D');
+  const A = g.makeNode('A').setMath('($1 + 2.5) / $2');
+  const B = g.makeNode('B').addEnum(3, 2.5).addEnum('A', 'B');
+  const C = g.makeNode('C').setMath(3);
+  const D = g.makeNode('D').setMath(10);
+  const E = g.makeNode('E').setComparator('$1', '<', 10, 'ab');
   g.connect(C, E).connect(E, B).connect(B, A).connect(D, A).connect(A, g.root);
-  D.setMath(10);
-  C.setMath(3);
-  B.addEnum(3, 2.5).addEnum('A', 'B');
-  A.setMath('($1 + 2.5) / $2');
-  E.setFilter('vu', '>', 2, '<=', 5);
 
   const g2 = new DAG();
   let s;
