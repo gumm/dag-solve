@@ -1,4 +1,4 @@
-const R = require('ramda');
+const R = require('../node_modules/ramda/dist/ramda.js');
 const u = require('./utils.js');
 
 /**
