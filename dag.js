@@ -127,7 +127,7 @@ class DAG {
   }
 
   /**
-   * @param {!String} name
+   * @param {!string} name
    * @returns {!Node}
    */
   makeNode(name) {
@@ -377,7 +377,7 @@ class DAG {
       }
     }
   }
-};
+}
 
 module.exports = DAG;
 

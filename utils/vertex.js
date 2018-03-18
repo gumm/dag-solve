@@ -6,8 +6,8 @@ const u = require('./utils.js');
  */
 class Node {
   /**
-   * @param {!number} id
-   * @param {!string} name
+   * @param {!number|undefined} id
+   * @param {!string|undefined} name
    * @param {Object|undefined} obj
    */
   constructor(id, name, obj = undefined) {
@@ -98,11 +98,11 @@ class Node {
    *    I: number,
    *    N: string,
    *    A: Array<number>,
-   *    D: *|undefined,
-   *    M: string|number|undefined,
-   *    E: Array<Array<*>>|undefined,
-   *    R: number|undefined,
-   *    F: Array<string|number|undefined>|undefined
+   *    D: (*|undefined),
+   *    M: (string|number|undefined),
+   *    E: (Array<Array<*>>|undefined),
+   *    R: (number|undefined),
+   *    F: (Array<string|number|undefined>|undefined)
    *      }}
    */
   dump() {

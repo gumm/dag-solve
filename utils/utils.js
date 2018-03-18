@@ -27,7 +27,7 @@ const isString = n => whatType(n) === 'string';
 const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
 
 /**
- * @param {!String} m Something like $1
+ * @param {!string} m Something like $1
  * @returns {number}
  */
 const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
@@ -109,7 +109,7 @@ const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
 /**
  * A generator function to produce consecutive ids, starting from
  * n + 1 of n. If n is not given, use 0.
- * @param {=number} opt_n
+ * @param {number=} opt_n
  * @return {!Iterator<number>}
  */
 function* idGen(opt_n) {
@@ -198,7 +198,7 @@ const mathCleaner = s => {
 
 /**
  * @param {(!string|!number)} fn
- * @returns {*[]}
+ * @returns {Array<string|!Function>}
  */
 const funcMaker = fn => {
   try {
@@ -220,7 +220,7 @@ const funcMaker = fn => {
  *    the variable "X" which should be an array of values, and we will be able
  *    to solve the math.
  * @param {!Array<!Node>} a
- * @returns {[boolean, !Function]}
+ * @returns {Array<boolean|!Function>}
  */
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
