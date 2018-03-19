@@ -330,9 +330,11 @@ class DAG {
   // noinspection JSUnusedGlobalSymbols
   /**
    * @param {!string} json A valid DAG Json String.
+   * @param {boolean=} allowRollback By default we allow a rollback, but
+   *    the rollback process itself does not.
    * @returns {boolean}
    */
-  read(json) {
+  read(json, allowRollback=true) {
     // Read the string
     const j = u.safeJsonParse(json);
 
@@ -373,11 +375,12 @@ class DAG {
         return true;
         }
       catch (e) {
-        this.read(rollback);
+        if (allowRollback) {
+          this.read(rollback, false);
+        }
       }
     }
   }
 }
 
 module.exports = DAG;
-

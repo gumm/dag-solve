@@ -1,4 +1,3 @@
-const R = require('../node_modules/ramda/dist/ramda.js');
 const u = require('./utils.js');
 
 /**
@@ -398,7 +397,7 @@ class Node {
         // When the path is null, just return the data...
         this._func = (X, data) => data;
       } else {
-        this._func = (X, data) => R.pathOr(undefined, this._path)(data);
+        this._func = (X, data) => u.pathOr(undefined, this._path)(data);
       }
       this._errState = null;
 

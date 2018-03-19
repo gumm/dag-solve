@@ -330,7 +330,24 @@ const removeOrphans = G => {
   return G;
 };
 
+/**
+ * @param {*} f A fallback value
+ * @param {!Array<string|number>} arr
+ * @returns {function((Object|Array)):(*)}
+ */
+const pathOr = (f, arr) => e => {
+  const r = arr.reduce((p, c) => {
+    try {
+      return p[c];
+    } catch (err) {
+      return undefined
+    }
+  }, e);
+  return r || f;
+};
+
 module.exports = {
+  pathOr,
   alwaysUndef,
   isDef,
   enumSet,

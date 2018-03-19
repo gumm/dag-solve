@@ -215,5 +215,17 @@ describe('Type utilities', () => {
     assert.strictEqual(o(fail, 3,4), 4);
   });
 
+  it('Access data from a path', () => {
+    const data = {
+      'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
+    };
+    let o;
+    o = u.pathOr('failed', ['SOME', 2, 'weird', 'data', 3, 1]);
+    assert.strictEqual(o(data), 3);
+
+    o = u.pathOr('failed', ['SOME', 0, 'weird', 'data', 3, 1]);
+    assert.strictEqual(o(data), 'failed');
+  });
+
 });
 
