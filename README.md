@@ -21,7 +21,7 @@ large data sets.
 
 ## Declare a graph
 ```javascript
-const DAG = require('dag-solve').DAG;
+const DAG = require('dag-solve');
 
 // Declare the graph
 const g = new DAG();
