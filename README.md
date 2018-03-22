@@ -10,7 +10,10 @@ node no further restrictions apply save for the prevention of cycles.
 Each node created in the graph can be configured to be a:
 * math solver
 * an enum solver
-* a filter (high-, low- and band-pass)
+* a comparator (equality, identity, inequality, 
+               non-identity, bigger-than, smaller-than, 
+               bigger-or-equal, smaller-or-equal)
+* a band-pass filter (check that a number is between two stops)               
 * a number rounder
 * a data reader
 
@@ -21,7 +24,7 @@ large data sets.
 
 ## Declare a graph
 ```javascript
-const DAG = require('dag-solve').DAG;
+const DAG = require('dag-solve');
 
 // Declare the graph
 const g = new DAG();

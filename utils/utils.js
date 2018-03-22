@@ -346,7 +346,24 @@ const pathOr = (f, arr) => e => {
   return r || f;
 };
 
+/**
+ * Given 2 coordinates, (x1, y1) and (x2, y2) what is the y value
+ * of a 3rd coordinate on the same line described by the two initial coordinates
+ * and a given x-value.
+ * @param {!number} x1 Coord 1 x value
+ * @param {!number} y1 Coord 1 y value
+ * @param {!number} x2 Coord 2 x value
+ * @param {!number} y2 Coord 2 y value
+ * @returns {!number}
+ */
+const extrapolate = (x1, y1, x2, y2) => x3 => {
+  if (y1 === y2) { return y1 }
+  if (x1 === x2) { return undefined }
+  return x3 * Math.tan(Math.atan((y2 - y1) / (x2 - x1)));
+};
+
 module.exports = {
+  extrapolate,
   pathOr,
   alwaysUndef,
   isDef,

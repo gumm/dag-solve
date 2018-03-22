@@ -47,6 +47,12 @@ class Node {
     this._comparator = [];
 
     /**
+     * @type {!Array<!string|!number>}
+     * @private
+     */
+    this._between = [];
+
+    /**
      * @type {function(...*): (undefined|*)}
      * @private
      */
@@ -88,6 +94,7 @@ class Node {
       this.setRound(obj.R);
       this.setPath(...obj.P);
       this.setComparator(...obj.C);
+      this.setBetween(...obj.B);
     }
   }
 
@@ -114,8 +121,19 @@ class Node {
       E: this._enum,
       R: this._round,
       P: this._path,
-      C: this._comparator
+      C: this._comparator,
+      B: this._between
     };
+  }
+
+  // --------------------------------------------------------------[ Utility ]--
+  _clearAll(incEnum = true) {
+    this._path = [];
+    this._enum = incEnum ? [] : this._enum;
+    this._comparator = [];
+    this._between = [];
+    this._round = undefined;
+    this._math = undefined;
   }
 
 
@@ -191,16 +209,13 @@ class Node {
    * @returns {Node}
    */
   setPath(...a) {
-    this._path = [...a];
 
-    if (this._path.length) {
-      this._enum = [];
-      this._comparator = [];
-      this._round = undefined;
-      this._math = undefined;
+    if ([...a].length) {
+      this._clearAll();
+      this._path = [...a];
+      this._errState = 'Changed';
     }
 
-    this._errState = 'Changed';
     return this;
   }
 
@@ -217,16 +232,13 @@ class Node {
    * @returns {Node}
    */
   setMath(s) {
-    this._math = s;
 
     if (u.isDef(s)) {
-      this._path = [];
-      this._enum = [];
-      this._round = undefined;
-      this._comparator = [];
+      this._clearAll();
+      this._math = s;
+      this._errState = 'Changed';
     }
 
-    this._errState = 'Changed';
     return this;
   }
 
@@ -245,15 +257,10 @@ class Node {
   setRound(int) {
 
     if (u.isNumber(int)) {
+      this._clearAll();
       this._round = u.pRound(0)(int);
-
-      this._path = [];
-      this._math = undefined;
-      this._enum = [];
-      this._comparator = [];
       this._errState = 'Changed';
     }
-
 
     return this;
   };
@@ -293,13 +300,8 @@ class Node {
     isClean = (["vu", "10", "tf", "ab"].includes(outputFormat)) && isClean;
 
     if (isClean) {
+      this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-
-      this._enum = [];
-      this._path = [];
-      this._math = undefined;
-      this._round = undefined;
-
       this._errState = 'Changed';
     }
 
@@ -308,6 +310,49 @@ class Node {
 
   get comparator() {
     return this._comparator;
+  }
+
+  // ----------------------------------------------------------[ Band Filter ]--
+  /**
+   * Band filter. Test that the input value is between the two stops.
+   * It does not matter which is bigger and which is smaller.
+   * @param {number|string} v The value to test
+   * @param {number|string} s1 Stop value
+   * @param {number|string} s2 Stop value
+   * @param {!string} outputFormat Result value. What is passed along
+   *    if the comparison either passes or fails. The only allowed values are:
+   *    "vu" - The input value on pass, else undefined
+   *    "10" - The number 1 on pass, else the number 0
+   *    "tf" - The boolean true if passed, else false.
+   *    "ab" - The input value on pass, else the clamped value. That is, the
+   *       predicate value that resulted in a fail.
+   *       Example: f(n) = n >= 2 && n <= 5
+   *                in "vc" mode:
+   *                  f(1.9999) == 2  <- Clamped Here
+   *                  f(3) == 3
+   *                  f(4) == 4
+   *                  f(5) == 5
+   *                  f(5.0001) == 5  <- Clamped Here
+   * @returns {Node}
+   */
+  setBetween(v, s1, s2, outputFormat) {
+    let isClean = true;
+    isClean = (u.isNumber(v) || u.isRefString(v)) && isClean;
+    isClean = (u.isNumber(s1) || u.isRefString(s1)) && isClean;
+    isClean = (u.isNumber(s2) || u.isRefString(s2)) && isClean;
+    isClean = (["vu", "10", "tf", "ab"].includes(outputFormat)) && isClean;
+
+    if (isClean) {
+      this._clearAll();
+      this._between = [v, s1, s2, outputFormat];
+      this._errState = 'Changed';
+    }
+
+    return this;
+  };
+
+  get between() {
+    return this._between;
   }
 
   // -----------------------------------------------------------------[ Enum ]--
@@ -320,13 +365,8 @@ class Node {
     if (k === undefined) {
       return this
     }
+    this._clearAll(false);
     this._enum = u.enumSet(this._enum, k, v);
-
-    this._path = [];
-    this._math = undefined;
-    this._round = undefined;
-    this._comparator = [];
-
     this._errState = 'Changed';
     return this;
   }
@@ -344,8 +384,7 @@ class Node {
   /**
    * @returns {Array<Array<*>>}
    */
-  get enum
-  () {
+  get enum() {
     return this._enum;
   }
 
@@ -388,6 +427,27 @@ class Node {
       this._func = X => {
         const [s1, s2]  = [r1(X),  r2(X)];
         return outF(t(s1, s2), s1, s2);
+      };
+      this._errState = null;
+
+      // This node is a between filter
+    } else if (this.between && this.between.length) {
+
+      let [v, s1, s2, outputFormat] = this.between;
+      const val = u.isString(v) ?  X => X[u.getRefIndex(v)] : () => v;
+      const sa = u.isString(s1) ?  X => X[u.getRefIndex(s1)] : () => s1;
+      const sb = u.isString(s2) ?  X => X[u.getRefIndex(s2)] : () => s2;
+      const outF = u.genOutput(outputFormat);
+
+      this._func = X => {
+        const [input, stopA, stopB]  = [val(X), sa(X),  sb(X)];
+        const [min, max] = [Math.min(stopA, stopB), Math.max(stopA, stopB)];
+        if (input >= min && input <= max) {
+          return outF(true, input, min);
+        } else if (input >= min) {
+          return outF(false, input, max);
+        }
+        return outF(false, input, min);
       };
       this._errState = null;
 

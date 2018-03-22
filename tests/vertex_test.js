@@ -277,6 +277,82 @@ describe('Nodes can make comparisons', () => {
 
 });
 
+describe('Nodes can filter between values', () => {
+  const g = new DAG();
+  const IN1 = g.makeNode('IN1').setPath(0);
+  const IN2 = g.makeNode('IN2').setPath(1);
+  const IN3 = g.makeNode('IN2').setPath(2);
+  const FILTER = g.makeNode('FILTER');
+  g.connect(FILTER, g.root)
+      .connect(IN1, FILTER)
+      .connect(IN2, FILTER)
+      .connect(IN3, FILTER);
+
+  it('It can test against constant values', () => {
+    FILTER.setBetween('$1', 1, 3, 'tf');
+    assert.strictEqual(g.solve([3.01]), false);
+    assert.strictEqual(g.solve([0.99]), false);
+    assert.strictEqual(g.solve([1]), true);
+    assert.strictEqual(g.solve([2]), true);
+    assert.strictEqual(g.solve([3]), true);
+  });
+
+  it('It can test against constant values (inverse)', () => {
+    FILTER.setBetween('$1', 3, 1, 'tf');
+    assert.strictEqual(g.solve([3.01]), false);
+    assert.strictEqual(g.solve([0.99]), false);
+    assert.strictEqual(g.solve([1]), true);
+    assert.strictEqual(g.solve([2]), true);
+    assert.strictEqual(g.solve([3]), true);
+  });
+
+  it('It can clamp to the filter', () => {
+    FILTER.setBetween('$1', 3, 1, 'ab');
+    assert.strictEqual(g.solve([3.01]), 3);
+    assert.strictEqual(g.solve([0.99]), 1);
+    assert.strictEqual(g.solve([1]), 1);
+    assert.strictEqual(g.solve([2]), 2);
+    assert.strictEqual(g.solve([3]), 3);
+  });
+
+  it('It can clamp to the filter (inverse)', () => {
+    FILTER.setBetween('$1', 1, 3, 'ab');
+    assert.strictEqual(g.solve([3.01]), 3);
+    assert.strictEqual(g.solve([0.99]), 1);
+    assert.strictEqual(g.solve([1]), 1);
+    assert.strictEqual(g.solve([2]), 2);
+    assert.strictEqual(g.solve([3]), 3);
+  });
+
+  it('It can output 0 or 1', () => {
+    FILTER.setBetween('$1', 2, 4, '10');
+    assert.strictEqual(g.solve([4.01]), 0);
+    assert.strictEqual(g.solve([1.99]), 0);
+    assert.strictEqual(g.solve([2]), 1);
+    assert.strictEqual(g.solve([3]), 1);
+    assert.strictEqual(g.solve([4]), 1);
+  });
+
+  it('It can output the input or undefined', () => {
+    FILTER.setBetween('$1', 2, 4, 'vu');
+    assert.strictEqual(g.solve([4.01]), undefined);
+    assert.strictEqual(g.solve([1.99]), undefined);
+    assert.strictEqual(g.solve([2]), 2);
+    assert.strictEqual(g.solve([3]), 3);
+    assert.strictEqual(g.solve([4]), 4);
+  });
+
+  it('It can read parameters from other nodes', () => {
+    FILTER.setBetween('$1', '$2', '$3', 'ab');
+    assert.strictEqual(g.solve([3.01, 1, 3]), 3);
+    assert.strictEqual(g.solve([0.99, 1, 3]), 1);
+    assert.strictEqual(g.solve([1, 1, 3]), 1);
+    assert.strictEqual(g.solve([2, 1, 3]), 2);
+    assert.strictEqual(g.solve([3, 1, 3]), 3);
+  });
+
+});
+
 describe('Nodes can do rounding', () => {
   const g = new DAG();
   const A = g.makeNode('A');
@@ -392,6 +468,7 @@ describe('Nodes can be dumped.', () => {
   const g = new DAG();
   const A = g.makeNode('A').setMath('1 + 1').setFallback(5);
   const dumpedNode = {
+    B: [],
     I: 1,
     N: 'A',
     A: [],
