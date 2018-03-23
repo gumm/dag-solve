@@ -74,7 +74,7 @@ class Node {
      * @type {string|undefined}
      * @private
      */
-    this._errState = 'Not init';
+    this._state = 'Not init';
 
     /**
      * @type {*}
@@ -82,7 +82,7 @@ class Node {
      */
     this._fallback = undefined;
 
-    // We overwrite *some* elements, but we keep the _args and _errState both
+    // We overwrite *some* elements, but we keep the _args and _state both
     // as default, because the Graph will populate those.
     if (obj) {
       this._id = obj.I;
@@ -182,7 +182,7 @@ class Node {
    */
   addArg(n) {
     this._args.push(n._id);
-    this._errState = 'Changed';
+    this._state = 'Changed';
     return this;
   }
 
@@ -192,7 +192,7 @@ class Node {
    */
   delArg(n) {
     this._args = this._args.filter(e => e !== n._id);
-    this._errState = 'Changed';
+    this._state = 'Changed';
     return this;
   }
 
@@ -213,7 +213,7 @@ class Node {
     if ([...a].length) {
       this._clearAll();
       this._path = [...a];
-      this._errState = 'Changed';
+      this._state = 'Changed';
     }
 
     return this;
@@ -236,7 +236,7 @@ class Node {
     if (u.isDef(s)) {
       this._clearAll();
       this._math = s;
-      this._errState = 'Changed';
+      this._state = 'Changed';
     }
 
     return this;
@@ -259,7 +259,7 @@ class Node {
     if (u.isNumber(int)) {
       this._clearAll();
       this._round = u.pRound(0)(int);
-      this._errState = 'Changed';
+      this._state = 'Changed';
     }
 
     return this;
@@ -302,7 +302,7 @@ class Node {
     if (isClean) {
       this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-      this._errState = 'Changed';
+      this._state = 'Changed';
     }
 
     return this;
@@ -345,7 +345,7 @@ class Node {
     if (isClean) {
       this._clearAll();
       this._between = [v, s1, s2, outputFormat];
-      this._errState = 'Changed';
+      this._state = 'Changed';
     }
 
     return this;
@@ -367,7 +367,7 @@ class Node {
     }
     this._clearAll(false);
     this._enum = u.enumSet(this._enum, k, v);
-    this._errState = 'Changed';
+    this._state = 'Changed';
     return this;
   }
 
@@ -377,7 +377,7 @@ class Node {
    */
   delEnum(k) {
     this._enum = u.enumUnSet(this._enum, k);
-    this._errState = 'Changed';
+    this._state = 'Changed';
     return this;
   }
 
@@ -392,7 +392,7 @@ class Node {
   clean() {
     // This node does math.
     if (this._math) {
-      [this._errState, this._func] = u.mathFunc(this._math, this.args);
+      [this._state, this._func] = u.mathFunc(this._math, this.args);
 
       // This node does enums
     } else if (this._enum && this._enum.length) {
@@ -407,13 +407,13 @@ class Node {
       const m = new Map(r);
       this._func = X => m.get(X[0]) ? m.get(X[0])(X) : undefined;
 
-      this._errState = null;
+      this._state = null;
 
       // This node does rounding
     } else if (u.isDef(this._round)) {
       const r = u.pRound(this._round);
       this._func = X => r(X[0]);
-      this._errState = null;
+      this._state = null;
 
       // This node is a comparator
     } else if (this.comparator && this.comparator.length) {
@@ -428,7 +428,7 @@ class Node {
         const [s1, s2]  = [r1(X),  r2(X)];
         return outF(t(s1, s2), s1, s2);
       };
-      this._errState = null;
+      this._state = null;
 
       // This node is a between filter
     } else if (this.between && this.between.length) {
@@ -449,7 +449,7 @@ class Node {
         }
         return outF(false, input, min);
       };
-      this._errState = null;
+      this._state = null;
 
       // This node can access data on a path.
     } else if (this._path && this._path.length) {
@@ -459,12 +459,12 @@ class Node {
       } else {
         this._func = (X, data) => u.pathOr(undefined, this._path)(data);
       }
-      this._errState = null;
+      this._state = null;
 
       // This does nothing but return a fallback value
     } else if (this._fallback) {
       this._func = () => this._fallback;
-      this._errState = null;
+      this._state = null;
     }
 
     return this;
@@ -480,24 +480,25 @@ class Node {
    *     argId -> indexOf arg id in topoIds -> p[]
    * @param {!Array<*>} p The solution so far. In topo-order.
    * @param {!Array<!number>} topoIds The topo-ordered list of node IDs
-   * @param {Object=} opt_d
+   * @param {Object=} data
    * @returns {*}
    */
-  solve(p, topoIds, opt_d) {
+  solve(p, topoIds, data) {
     const argArr = this.args.map(id => p[topoIds.indexOf(id)]);
 
-    if (!this._errState) {
-      const result = this._func(argArr, opt_d);
+    if (!this._state) {
+      const result = this._func(argArr, data);
       // Make sure things like false, null, 0 don't trigger the fallback,
       // But NaN and undefined does.
-      return result === undefined ? [null, this.fallback] : [null, result];
+      const reply = result === undefined ? this.fallback : result;
+      return [null, reply];
     } else {
       this.clean()
     }
-    if (!this._errState) {
-      return this.solve(p, topoIds);
+    if (!this._state) {
+      return this.solve(p, topoIds, data);
     }
-    return [this._errState, undefined];
+    return [this._state, undefined];
   }
 }
 
