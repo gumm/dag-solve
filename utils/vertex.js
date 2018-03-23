@@ -478,27 +478,33 @@ class Node {
    * first array (p).
    * Thus, to get to an arg value the logic is:
    *     argId -> indexOf arg id in topoIds -> p[]
+   * @param {!Array<*>} err Collected errors. In topo-order.
    * @param {!Array<*>} p The solution so far. In topo-order.
    * @param {!Array<!number>} topoIds The topo-ordered list of node IDs
    * @param {Object=} data
    * @returns {*}
    */
-  solve(p, topoIds, data) {
+  solve(err, p, topoIds, data) {
     const argArr = this.args.map(id => p[topoIds.indexOf(id)]);
+    const solArr = Array.from(p);
+    const errArr = Array.from(err);
 
     if (!this._state) {
       const result = this._func(argArr, data);
-      // Make sure things like false, null, 0 don't trigger the fallback,
-      // But NaN and undefined does.
       const reply = result === undefined ? this.fallback : result;
-      return [null, reply];
+      solArr.push(reply);
+      errArr.push(this._state);
+      return [errArr, solArr, topoIds, data];
     } else {
       this.clean()
     }
     if (!this._state) {
-      return this.solve(p, topoIds, data);
+      return this.solve(err, p, topoIds, data);
+    } else {
+      solArr.push(undefined);
+      errArr.push(this._state);
+      return [errArr, solArr, topoIds, data];
     }
-    return [this._state, undefined];
   }
 }
 

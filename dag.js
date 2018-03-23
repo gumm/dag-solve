@@ -301,16 +301,12 @@ class DAG {
     const validTopoNodes = this.topo.filter(e => m.has(e.id));
     const validTopoIds = validTopoNodes.map(u.grabId);
     const cleanNodes = validTopoNodes.map(n => n.clean());
-    const errs = [];
 
-    return (opt_d) => {
-      const r = cleanNodes.reduce((p, n) => {
-        const [err, s] = n.solve(p, validTopoIds, opt_d);
-        errs.push(err);
-        p.push(s);
-        return p;
-      }, []);
-      return debug ? r : u.tail(r);
+    return (data) => {
+      const r = cleanNodes.reduce(
+          (p, n) => n.solve(...p),
+          [[],[], validTopoIds, data]);
+      return debug ? r : u.tail(r[1]);
     };
   }
 

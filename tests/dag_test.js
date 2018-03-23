@@ -374,9 +374,12 @@ describe('A dag can be given a value/object to compute on', () => {
     assert.strictEqual(g.solve(data), 1.25)
   });
 
-  it('Use the "debug" method to get the solution at each node',
-     () => {// This is the solution at each node in topo order
-            assert.deepStrictEqual(g.debug(data), [10, 3, 10, 1.25, 1.25])});
+  it('The "debug" method returns solutions and collected errors', () => {
+    const solArr = [10, 3, 10, 1.25, 1.25];
+    const errArr = [null, null, null, null, null];
+    const topoIds = [ 3, 2, 4, 1, 0 ];
+    assert.deepStrictEqual(g.debug(data), [errArr, solArr, topoIds, data])
+  });
 
   it('The graph can be applied to an array of data', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
