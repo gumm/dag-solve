@@ -53,12 +53,6 @@ class Node {
     this._between = [];
 
     /**
-     * @type {function(...*): (undefined|*)}
-     * @private
-     */
-    this._func = u.alwaysUndef;
-
-    /**
      * @type {!number|undefined}
      * @private
      */
@@ -71,16 +65,25 @@ class Node {
     this._path = undefined;
 
     /**
-     * @type {string|undefined}
-     * @private
-     */
-    this._state = 'Not init';
-
-    /**
      * @type {*}
      * @private
      */
     this._fallback = undefined;
+
+    /**
+     * A flag indicating that there is a problem, difficulty, or complication
+     * and that this node will not be able to perform a solve. When set to null,
+     * it means there are no problems, and the node will be able to solve. .
+     * @type {string|undefined}
+     * @private
+     */
+    this._nodus = 'Not init';
+
+    /**
+     * @type {function(...*): (undefined|*)}
+     * @private
+     */
+    this._func = u.alwaysUndef;
 
     // We overwrite *some* elements, but we keep the _args and _state both
     // as default, because the Graph will populate those.
@@ -134,6 +137,18 @@ class Node {
     this._between = [];
     this._round = undefined;
     this._math = undefined;
+    this._nodus = 'Changed';
+  }
+
+  /**
+   * Resets a nodes solutions entirely. Including its fallback value.
+   * May be useful for some UI on top of this.
+   * Does not change the node ID, its connectedness or its name.
+   */
+  reset() {
+    this._clearAll(true);
+    this._fallback = undefined;
+    this._nodus = 'Not init';
   }
 
 
@@ -159,6 +174,34 @@ class Node {
     this._name = n;
   }
 
+  // -----------------------------------------------------------------[ Args ]--
+  /**
+   * Add a argument to the node.
+   * @param {!Node} n
+   */
+  addArg(n) {
+    this._args.push(n._id);
+    this._nodus = 'Args added';
+    return this;
+  }
+
+  /**
+   * Remove an argument from the node.
+   * @param {!Node} n
+   */
+  delArg(n) {
+    this._args = this._args.filter(e => e !== n._id);
+    this._nodus = 'Args removed';
+    return this;
+  }
+
+  /**
+   * @returns {!Array<!number>}
+   */
+  get args() {
+    return this._args;
+  }
+
   // -------------------------------------------------------------[ Fallback ]--
   /**
    * @param {*} n
@@ -175,35 +218,7 @@ class Node {
     return this._fallback;
   }
 
-  // -----------------------------------------------------------------[ Args ]--
-  /**
-   * Add a argument to the node.
-   * @param {!Node} n
-   */
-  addArg(n) {
-    this._args.push(n._id);
-    this._state = 'Changed';
-    return this;
-  }
-
-  /**
-   * Remove an argument from the node.
-   * @param {!Node} n
-   */
-  delArg(n) {
-    this._args = this._args.filter(e => e !== n._id);
-    this._state = 'Changed';
-    return this;
-  }
-
-  /**
-   * @returns {!Array<!number>}
-   */
-  get args() {
-    return this._args;
-  }
-
-  // -----------------------------------------------------------------[ Math ]--
+  // -----------------------------------------------------------------[ Path ]--
   /**
    * @param a
    * @returns {Node}
@@ -213,7 +228,6 @@ class Node {
     if ([...a].length) {
       this._clearAll();
       this._path = [...a];
-      this._state = 'Changed';
     }
 
     return this;
@@ -236,7 +250,6 @@ class Node {
     if (u.isDef(s)) {
       this._clearAll();
       this._math = s;
-      this._state = 'Changed';
     }
 
     return this;
@@ -259,7 +272,6 @@ class Node {
     if (u.isNumber(int)) {
       this._clearAll();
       this._round = u.pRound(0)(int);
-      this._state = 'Changed';
     }
 
     return this;
@@ -281,28 +293,29 @@ class Node {
    *    "vu" - The input value on pass, else undefined
    *    "10" - The number 1 on pass, else the number 0
    *    "tf" - The boolean true if passed, else false.
-   *    "vc" - The input value on pass, else the clamped value. That is, the
+   *    "ab" - The input value on pass, else the stop value. That is, the
    *       predicate value that resulted in a fail.
-   *       Example: f(n) = n >= 2 && n <= 5
-   *                in "vc" mode:
-   *                  f(1.9999) == 2  <- Clamped Here
+   *       Example: f(n) = n < 5
+   *                in "ab" mode:
    *                  f(3) == 3
    *                  f(4) == 4
-   *                  f(5) == 5
+   *                  f(4.9999) == 4.9999
+   *                  f(5) == 5       <- Clamped Here
    *                  f(5.0001) == 5  <- Clamped Here
+   *                  f(100) == 5     <- Clamped Here
    * @returns {Node}
    */
   setComparator(v1, cmp, v2, outputFormat) {
-    let isClean = true;
-    isClean = (u.isNumber(v1) || u.isRefString(v1)) && isClean;
-    isClean = (["!=", "!==", "==", "===", "<=", ">=", "<", ">"].includes(cmp)) && isClean;
-    isClean = (u.isNumber(v2) || u.isRefString(v2)) && isClean;
-    isClean = (["vu", "10", "tf", "ab"].includes(outputFormat)) && isClean;
+    let pass = true;
+    pass = (u.isNumber(v1) || u.isRefString(v1)) && pass;
+    pass = (u.isNumber(v2) || u.isRefString(v2)) && pass;
+    pass = (["!=", "!==", "==", "===",
+      "<=", ">=", "<", ">"].includes(cmp)) && pass;
+    pass = (["vu", "10", "tf", "ab"].includes(outputFormat)) && pass;
 
-    if (isClean) {
+    if (pass) {
       this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-      this._state = 'Changed';
     }
 
     return this;
@@ -315,7 +328,12 @@ class Node {
   // ----------------------------------------------------------[ Band Filter ]--
   /**
    * Band filter. Test that the input value is between the two stops.
-   * It does not matter which is bigger and which is smaller.
+   * Stop values are considered inclusive. That is, the comparison is made
+   * with either a <= or >= operator when considering the given value's
+   * relationship with a stop value.
+   * Stop values can be given in any order. Internally the comparison will
+   * always be that the given value should be bigger or eq than than the
+   * smaller of the stops, and smaller or eq than the bigger of the stops.
    * @param {number|string} v The value to test
    * @param {number|string} s1 Stop value
    * @param {number|string} s2 Stop value
@@ -325,9 +343,9 @@ class Node {
    *    "10" - The number 1 on pass, else the number 0
    *    "tf" - The boolean true if passed, else false.
    *    "ab" - The input value on pass, else the clamped value. That is, the
-   *       predicate value that resulted in a fail.
+   *       stop value that resulted in a fail.
    *       Example: f(n) = n >= 2 && n <= 5
-   *                in "vc" mode:
+   *                in "ab" mode:
    *                  f(1.9999) == 2  <- Clamped Here
    *                  f(3) == 3
    *                  f(4) == 4
@@ -345,7 +363,6 @@ class Node {
     if (isClean) {
       this._clearAll();
       this._between = [v, s1, s2, outputFormat];
-      this._state = 'Changed';
     }
 
     return this;
@@ -367,7 +384,6 @@ class Node {
     }
     this._clearAll(false);
     this._enum = u.enumSet(this._enum, k, v);
-    this._state = 'Changed';
     return this;
   }
 
@@ -377,7 +393,7 @@ class Node {
    */
   delEnum(k) {
     this._enum = u.enumUnSet(this._enum, k);
-    this._state = 'Changed';
+    this._nodus = 'Changed';
     return this;
   }
 
@@ -390,120 +406,61 @@ class Node {
 
   // ----------------------------------------------------------------[ Solve ]--
   clean() {
-    // This node does math.
-    if (this._math) {
-      [this._state, this._func] = u.mathFunc(this._math, this.args);
+    if (this.math) {
+      // This node does math.
+      [this._nodus, this._func] = u.mathFunc(this.math, this.args);
 
+    } else if (this.enum && this.enum.length) {
       // This node does enums
-    } else if (this._enum && this._enum.length) {
+      [this._nodus, this._func] = u.enumFunc(this.enum, this.args);
 
-      // Make it so you can read values from other nodes as output in an
-      // enum.
-      const r = this.enum.map(([k,v]) => (u.isString(v) && u.isRefString(v))
-          ? [k, X => X[u.getRefIndex(v)]]
-          : [k, () => v]
-      );
-
-      const m = new Map(r);
-      this._func = X => m.get(X[0]) ? m.get(X[0])(X) : undefined;
-
-      this._state = null;
-
+    } else if (u.isDef(this.round)) {
       // This node does rounding
-    } else if (u.isDef(this._round)) {
-      const r = u.pRound(this._round);
-      this._func = X => r(X[0]);
-      this._state = null;
+      [this._nodus, this._func] = u.roundFunc(this.round, this.args);
 
-      // This node is a comparator
     } else if (this.comparator && this.comparator.length) {
+      // This node is a comparator
+      [this._nodus, this._func] = u.comparatorFunc(this.comparator, this.args);
 
-      let [v1, cmp, v2, outputFormat] = this.comparator;
-      const r1 = u.isString(v1) ?  X => X[u.getRefIndex(v1)] : () => v1;
-      const r2 = u.isString(v2) ? X => X[u.getRefIndex(v2)] : () => v2;
-      const t = u.makeComparator(cmp);
-      const outF = u.genOutput(outputFormat);
-
-      this._func = X => {
-        const [s1, s2]  = [r1(X),  r2(X)];
-        return outF(t(s1, s2), s1, s2);
-      };
-      this._state = null;
-
-      // This node is a between filter
     } else if (this.between && this.between.length) {
+      // This node is a between filter
+      [this._nodus, this._func] = u.betweenFunc(this.between, this.args);
 
-      let [v, s1, s2, outputFormat] = this.between;
-      const val = u.isString(v) ?  X => X[u.getRefIndex(v)] : () => v;
-      const sa = u.isString(s1) ?  X => X[u.getRefIndex(s1)] : () => s1;
-      const sb = u.isString(s2) ?  X => X[u.getRefIndex(s2)] : () => s2;
-      const outF = u.genOutput(outputFormat);
+    } else if (this.path && this.path.length) {
+      // This node can access data via a path into a data structure.
+      [this._nodus, this._func] = u.dataPathFunc(this.path, this.args);
 
-      this._func = X => {
-        const [input, stopA, stopB]  = [val(X), sa(X),  sb(X)];
-        const [min, max] = [Math.min(stopA, stopB), Math.max(stopA, stopB)];
-        if (input >= min && input <= max) {
-          return outF(true, input, min);
-        } else if (input >= min) {
-          return outF(false, input, max);
-        }
-        return outF(false, input, min);
-      };
-      this._state = null;
-
-      // This node can access data on a path.
-    } else if (this._path && this._path.length) {
-      if (u.sameArr(this._path, [null])) {
-        // When the path is null, just return the data...
-        this._func = (X, data) => data;
-      } else {
-        this._func = (X, data) => u.pathOr(undefined, this._path)(data);
-      }
-      this._state = null;
-
-      // This does nothing but return a fallback value
     } else if (this._fallback) {
-      this._func = () => this._fallback;
-      this._state = null;
+      // This does nothing but return a fallback value
+      [this._nodus, this._func] = [null, () => this._fallback];
     }
 
     return this;
   }
 
   /**
-   * Given two lists, this returns the solution for this node.
-   * Both arrays are topologically ordered, and maps to one another.
-   * This node's own args array contains the ids of the nodes that connect
-   * to this node, and so the solutions of those nodes can be found in the
-   * first array (p).
-   * Thus, to get to an arg value the logic is:
-   *     argId -> indexOf arg id in topoIds -> p[]
-   * @param {!Array<*>} err Collected errors. In topo-order.
-   * @param {!Array<*>} p The solution so far. In topo-order.
-   * @param {!Array<!number>} topoIds The topo-ordered list of node IDs
-   * @param {Object=} data
-   * @returns {*}
+   * Given a Map, it is guaranteed that all the data required to solve this
+   * node is already available in the map. Once the node is solved, it
+   * mutates the map by adding its own id as a key, and its own result as
+   * the value under that key.
+   * @param {!Map} sMap
+   * @returns {!Map}
    */
-  solve(err, p, topoIds, data) {
-    const argArr = this.args.map(id => p[topoIds.indexOf(id)]);
-    const solArr = Array.from(p);
-    const errArr = Array.from(err);
+  solve(sMap) {
 
-    if (!this._state) {
-      const result = this._func(argArr, data);
-      const reply = result === undefined ? this.fallback : result;
-      solArr.push(reply);
-      errArr.push(this._state);
-      return [errArr, solArr, topoIds, data];
+    if (!this._nodus) {
+      const r = this._func(sMap);
+      const reply = r === undefined ? this.fallback : r;
+      return sMap.set(this._id, reply);
     } else {
       this.clean()
     }
-    if (!this._state) {
-      return this.solve(err, p, topoIds, data);
+    if (!this._nodus) {
+      return this.solve(sMap);
     } else {
-      solArr.push(undefined);
-      errArr.push(this._state);
-      return [errArr, solArr, topoIds, data];
+      sMap.set(this._id, undefined);
+      sMap.set(`err_${this._id}`, !this._nodus);
+      return sMap;
     }
   }
 }

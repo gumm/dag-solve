@@ -365,8 +365,8 @@ describe('A dag can be given a value/object to compute on', () => {
     'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
   };
 
-  const D2 = Array(5000).fill(data);
-  const D3 = Array(5000).fill(1).map((e, i) => [i]);
+  const D2 = Array(10000).fill(data);
+  const D3 = Array(10000).fill(1).map((e, i) => [i]);
 
   it('When given data, it can read and solve.', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
@@ -375,23 +375,28 @@ describe('A dag can be given a value/object to compute on', () => {
   });
 
   it('The "debug" method returns solutions and collected errors', () => {
-    const solArr = [10, 3, 10, 1.25, 1.25];
-    const errArr = [null, null, null, null, null];
-    const topoIds = [ 3, 2, 4, 1, 0 ];
-    assert.deepStrictEqual(g.debug(data), [errArr, solArr, topoIds, data])
+    const r = new Map()
+        .set('topoIds',[ 3, 2, 4, 1, 0 ])
+        .set('data', data)
+        .set(3, 10)
+        .set(2, 3)
+        .set(4, 10)
+        .set(1, 1.25)
+        .set(0, 1.25);
+    assert.deepStrictEqual(g.debug(data), r)
   });
 
   it('The graph can be applied to an array of data', () => {
     D.setPath('SOME', 2, 'weird', 'data', 1);
     C.setPath('SOME', 2, 'weird', 'data', 3, 1);
-    D2.map(e => g.solve(e));  // <- About 270ms
+    D2.map(e => g.solve(e));  // <- About 300ms
   });
 
   it('A DAG can retrun a pre-computed solver that is ' +
          'much faster than the above methods.',
      () => {
        const solver = g.getSolver();
-       D2.map(solver);  // <- About 25ms About 10x faster
+       D2.map(solver);  // <- About 13ms About 10x faster
      });
 
   it('The graph can be applied to an array of array-data', () => {

@@ -211,6 +211,8 @@ const funcMaker = fn => {
   }
 };
 
+
+//-----------------------------------------------------------[ Solve Methods ]--
 /**
  * Convert a mathematical string, into  a function that returns the
  * solution.
@@ -227,7 +229,7 @@ const mathFunc = (m, a) => {
   let f = alwaysUndef;
   if (isString(m)) {
     const s = a.reduce(
-        (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}[${i}]`),
+        (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}.get(${c})`),
         mathCleaner(m));
     if (!s.includes('$')) {
       [err, f] = funcMaker(s);
@@ -239,6 +241,112 @@ const mathFunc = (m, a) => {
 };
 
 
+/**
+ * @param {Array<Array<*>>} e The enum array.
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const enumFunc = (e, a) => {
+
+  const r = e.map(([k, v]) => {
+    if(isString(v) && isRefString(v)) {
+      const i = getRefIndex(v);
+      return [k, sMap => sMap.get(a[i])];
+    } else {
+      return [k, () => v];
+    }
+  });
+
+  const m = new Map(r);
+  return [null, sMap => {
+    const f = m.get(sMap.get(a[0]));
+    return f ? f(sMap) : undefined;
+  }];
+};
+
+/**
+ * @param {!number} r The number of digits you want to round to.
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const roundFunc = (r, a) => {
+  const round = pRound(r);
+  return [null, sMap => round(sMap.get(a[0]))]
+};
+
+const compFuncHelper = (v, a) => {
+  let f;
+  if (isString(v)) {
+    const i = getRefIndex(v);
+    f = sMap => sMap.get(a[i]);
+  } else {
+    f = () => v
+  }
+  return f;
+};
+
+/**
+ * @param {!Array<(number|string)>} c The comparison description.
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const comparatorFunc = (c, a) => {
+  let [v1, cmp, v2, outputFormat] = c;
+
+  const r1 = compFuncHelper(v1, a);
+  const r2 = compFuncHelper(v2, a);
+  const t = makeComparator(cmp);
+  const outF = genOutput(outputFormat);
+
+  return [null, sMap => {
+    const [s1, s2]  = [r1(sMap),  r2(sMap)];
+    return outF(t(s1, s2), s1, s2);
+  }];
+};
+
+
+/**
+ * @param {!Array<(string|number)>} b The comparison description.
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const betweenFunc = (b, a) => {
+  let [v, s1, s2, outputFormat] = b;
+  const val = compFuncHelper(v, a);
+  const sa = compFuncHelper(s1, a);
+  const sb = compFuncHelper(s2, a);
+  const outF = genOutput(outputFormat);
+
+  return [null, sMap => {
+    const [input, stopA, stopB]  = [val(sMap), sa(sMap),  sb(sMap)];
+    const [min, max] = [Math.min(stopA, stopB), Math.max(stopA, stopB)];
+    if (input >= min && input <= max) {
+      return outF(true, input, min);
+    } else if (input >= min) {
+      return outF(false, input, max);
+    }
+    return outF(false, input, min);
+  }];
+};
+
+/**
+ * @param {!Array<(string|number)>} p The path into the data structure.
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const dataPathFunc = (p, a) => {
+  let f;
+  if (sameArr(p, [null])) {
+    // By convention when the path is null, just return the data...
+    f = sMap => sMap.get('data');
+  } else {
+    f = sMap => pathOr(undefined, p)(sMap.get('data'));
+  }
+  return [null, f];
+};
+
+
+//---------------------------------------------------------------[ DAG Utils ]--
 /**
  * Given a map of a dag in the form below, return an array of leaf nodes, that
  * is, nodes with 0 in degrees / nodes where no edges point to it.
@@ -370,6 +478,11 @@ module.exports = {
   enumSet,
   enumUnSet,
   mathFunc,
+  enumFunc,
+  roundFunc,
+  comparatorFunc,
+  betweenFunc,
+  dataPathFunc,
   pRound,
   idGen,
   topoSort,
