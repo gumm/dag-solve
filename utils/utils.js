@@ -451,7 +451,7 @@ const pathOr = (f, arr) => e => {
       return undefined
     }
   }, e);
-  return r || f;
+  return r === undefined ? f : r;
 };
 
 /**
