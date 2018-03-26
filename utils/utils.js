@@ -183,18 +183,25 @@ const genOutput = rv => {
 };
 
 /**
- * Given a string, sanitize it and only allow numbers and arithmetic
+ * Given a string, sanitize it and only allow numbers, arithmetic and bitwise
  * operators
  * @param {!string} s
  * @returns {string}
  */
 const mathCleaner = s => {
-  const arithmeticOperators = ['+', '-', '*', '/', '%', '(', ')'];
+  const arithmeticOps = ['+', '-', '*', '/', '%', '(', ')'];
+  const bitwiseOps = ['&', '|', '^', '~', '<<', '>>', '>>>'];
   const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'];
-  const ref = ['$', ' '];
-  const combined = [...arithmeticOperators, ...numbers, ...ref];
+  const builtIns = ['int', 'len'];
+  const ref = ['$', ' ', '\''];
+  const combined = [
+      ...arithmeticOps, ...numbers, ...ref, ...bitwiseOps, ...builtIns];
+
   return [...s].filter(e => combined.includes(e)).join('');
 };
+
+const len = e => ('' + e).length;
+const int = e => parseInt(e, 10);
 
 /**
  * @param {(!string|!number)} fn
@@ -204,7 +211,11 @@ const funcMaker = fn => {
   try {
     return [
       null,
-      new Function(argRefSymbol, `try { return ${fn}; } catch(e) { return; }`)
+      new Function(argRefSymbol, `
+      const len = e => ('' + e).length;
+      const int = e => parseInt(e, 10);
+      try { return ${fn}; } catch(e) { return; }
+      `)
     ];
   } catch (err) {
     return [`Could not make a function with "${fn}"`, alwaysUndef];
