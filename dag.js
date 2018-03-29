@@ -15,6 +15,14 @@ class DAG {
   constructor() {
 
     /**
+     * Dag can be given meta data for the duration of its life.
+     * The meta is not persisted across dump and reads
+     * @type {*}
+     * @private
+     */
+    this._meta = null;
+
+    /**
      * The container of our DAG
      * @type {Map<Node, Set<Node>>}
      */
@@ -32,6 +40,22 @@ class DAG {
      */
     this._rootNode = this.makeNode('ROOT');
     this._rootNode.setMath('$1')
+  }
+
+  /**
+   * Get the DAG meta
+   * @returns {*}
+   */
+  get meta() {
+    return this._meta;
+  }
+
+  /**
+   * Set the DAG meta. Meta is not persisted across dump and read cycles.
+   * @param {*} any
+   */
+  set meta(any) {
+    this._meta = any;
   }
 
   /**
@@ -332,7 +356,7 @@ class DAG {
    * @param {!string} json A valid DAG Json String.
    * @param {boolean=} allowRollback By default we allow a rollback, but
    *    the rollback process itself does not.
-   * @returns {boolean}
+   * @returns {DAG}
    */
   read(json, allowRollback=true) {
     // Read the string
@@ -372,7 +396,7 @@ class DAG {
         this.nodes.forEach(n => {
           n._args = j.N.find(e => e.I === n.id).A;
         });
-        return true;
+        return this;
         }
       catch (e) {
         if (allowRollback) {
