@@ -477,7 +477,8 @@ describe('Nodes can be dumped.', () => {
     E: [],
     R: undefined,
     P: [],
-    C: []
+    C: [],
+    V: undefined
   };
   it('A dumped node is an object, not a string.', () => {
     assert.deepStrictEqual(A.dump(), dumpedNode);

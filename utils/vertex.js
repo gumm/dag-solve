@@ -65,6 +65,12 @@ class Node {
     this._path = undefined;
 
     /**
+     * @type {!number|undefined}
+     * @private
+     */
+    this._evCode = undefined;
+
+    /**
      * @type {*}
      * @private
      */
@@ -98,6 +104,7 @@ class Node {
       this.setPath(...obj.P);
       this.setComparator(...obj.C);
       this.setBetween(...obj.B);
+      this.setEvCode(obj.V);
     }
   }
 
@@ -125,7 +132,8 @@ class Node {
       R: this._round,
       P: this._path,
       C: this._comparator,
-      B: this._between
+      B: this._between,
+      V: this._evCode
     };
   }
 
@@ -137,6 +145,7 @@ class Node {
     this._between = [];
     this._round = undefined;
     this._math = undefined;
+    this._evCode = undefined;
     this._nodus = 'Changed';
   }
 
@@ -216,6 +225,28 @@ class Node {
    */
   get fallback() {
     return this._fallback;
+  }
+
+  // -----------------------------------------------------------------[ Path ]--
+  /**
+   * @param {number} a
+   * @returns {Node}
+   */
+  setEvCode(n) {
+
+    if (u.isDef(n)) {
+      this._clearAll();
+      this._evCode = n;
+    }
+
+    return this;
+  }
+
+  /**
+   * @returns {Array<string|number>}
+   */
+  get evCode() {
+    return this._evCode;
   }
 
   // -----------------------------------------------------------------[ Path ]--
