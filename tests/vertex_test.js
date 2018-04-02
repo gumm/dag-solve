@@ -399,6 +399,39 @@ describe('Nodes can access data from an array or object', () => {
 
 });
 
+
+describe('Nodes can access event codes', () => {
+  const g = new DAG();
+  const A = g.makeNode('A');
+  g.connect(A, g.root);
+  A.setEvCode(123);
+
+  const data = {
+    '_ev': {
+      '1': 'string',
+      '12': null,
+      '123': true,
+      '1234': 123
+    },
+    'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
+  };
+
+  it('Event codes are only looked for under the "_ev" key', () => {
+    assert.strictEqual(g.solve(data), true);
+  });
+
+  it('Event codes may not have values', () => {
+    A.setEvCode(12);
+    assert.strictEqual(g.solve(data), null);
+  });
+
+  it('Event codes could be strings', () => {
+    A.setEvCode(1);
+    assert.strictEqual(g.solve(data), 'string');
+  });
+
+});
+
 describe('Nodes can have a default or fallback value', () => {
   const g = new DAG();
   const A = g.makeNode('A');

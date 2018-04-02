@@ -356,6 +356,17 @@ const dataPathFunc = (p, a) => {
   return [null, f];
 };
 
+/**
+ * @param {number} eventCode The event code. The data structure has a spec
+ * @param {!Array<!number>} a
+ * @returns {Array<boolean|!Function>}
+ */
+const eventCodeFunc = (eventCode, a) => {
+  const p = ['_ev', eventCode.toString()];
+  const f = sMap => pathOr(undefined, p)(sMap.get('data'));
+  return [null, f];
+};
+
 
 //---------------------------------------------------------------[ DAG Utils ]--
 /**
@@ -494,6 +505,7 @@ module.exports = {
   comparatorFunc,
   betweenFunc,
   dataPathFunc,
+  eventCodeFunc,
   pRound,
   idGen,
   topoSort,

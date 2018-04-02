@@ -229,7 +229,7 @@ class Node {
 
   // -----------------------------------------------------------------[ Path ]--
   /**
-   * @param {number} a
+   * @param {number} n
    * @returns {Node}
    */
   setEvCode(n) {
@@ -243,7 +243,7 @@ class Node {
   }
 
   /**
-   * @returns {Array<string|number>}
+   * @returns {!number|undefined}
    */
   get evCode() {
     return this._evCode;
@@ -460,6 +460,10 @@ class Node {
     } else if (this.path && this.path.length) {
       // This node can access data via a path into a data structure.
       [this._nodus, this._func] = u.dataPathFunc(this.path, this.args);
+
+    } else if (this.evCode) {
+      // This node can access event codes.
+      [this._nodus, this._func] = u.eventCodeFunc(this.evCode, this.args);
 
     } else if (this._fallback) {
       // This does nothing but return a fallback value
