@@ -408,10 +408,10 @@ describe('Nodes can access event codes', () => {
 
   const data = {
     '_ev': {
-      '1': 'string',
-      '12': null,
-      '123': true,
-      '1234': 123
+      '1': {code: 1, data: 'string', desc: null},
+      '12': {code: 12, data: null, desc: null},
+      '123': {code: 123, data: true, desc: 'A true'},
+      '1234': {code: 1234, data: 12, desc: 'A number'}
     },
     'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
   };
@@ -428,6 +428,16 @@ describe('Nodes can access event codes', () => {
   it('Event codes could be strings', () => {
     A.setEvCode(1);
     assert.strictEqual(g.solve(data), 'string');
+  });
+
+  it('Add an optional "desc" to access the event description', () => {
+    A.setEvCode(1234, 'desc');
+    assert.strictEqual(g.solve(data), 'A number');
+  });
+
+  it('Add an optional "code" to access the event code numeric value', () => {
+    A.setEvCode(1234, 'code');
+    assert.strictEqual(g.solve(data), 1234);
   });
 
 });
@@ -511,7 +521,7 @@ describe('Nodes can be dumped.', () => {
     R: undefined,
     P: [],
     C: [],
-    V: undefined
+    V: []
   };
   it('A dumped node is an object, not a string.', () => {
     assert.deepStrictEqual(A.dump(), dumpedNode);

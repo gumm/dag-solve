@@ -65,10 +65,10 @@ class Node {
     this._path = undefined;
 
     /**
-     * @type {!number|undefined}
+     * @type {!Array<!string|!number>}
      * @private
      */
-    this._evCode = undefined;
+    this._evCode = [];
 
     /**
      * @type {*}
@@ -104,7 +104,7 @@ class Node {
       this.setPath(...obj.P);
       this.setComparator(...obj.C);
       this.setBetween(...obj.B);
-      this.setEvCode(obj.V);
+      this.setEvCode(...obj.V);
     }
   }
 
@@ -143,9 +143,9 @@ class Node {
     this._enum = incEnum ? [] : this._enum;
     this._comparator = [];
     this._between = [];
+    this._evCode = [];
     this._round = undefined;
     this._math = undefined;
-    this._evCode = undefined;
     this._nodus = 'Changed';
   }
 
@@ -230,20 +230,26 @@ class Node {
   // -----------------------------------------------------------------[ Path ]--
   /**
    * @param {number} n
+   * @param {string=} opt_access
    * @returns {Node}
    */
-  setEvCode(n) {
+  setEvCode(n, opt_access) {
 
     if (u.isDef(n)) {
       this._clearAll();
-      this._evCode = n;
+      let access = 'data';
+      if (opt_access) {
+        const ac = opt_access.toLowerCase();
+        access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
+      }
+      this._evCode = [n, access];
     }
 
     return this;
   }
 
   /**
-   * @returns {!number|undefined}
+   * @returns {Array<string|number>}
    */
   get evCode() {
     return this._evCode;
@@ -461,7 +467,7 @@ class Node {
       // This node can access data via a path into a data structure.
       [this._nodus, this._func] = u.dataPathFunc(this.path, this.args);
 
-    } else if (this.evCode) {
+    } else if (this.evCode && this.evCode.length === 2) {
       // This node can access event codes.
       [this._nodus, this._func] = u.eventCodeFunc(this.evCode, this.args);
 

@@ -357,12 +357,24 @@ const dataPathFunc = (p, a) => {
 };
 
 /**
- * @param {number} eventCode The event code. The data structure has a spec
+ * The data structure spec describes the event data structure as:
+ *  {_ev:
+ *    {'101':
+ *      {
+ *        data: {null|undefined|string|number|Object|Array},
+ *        desc: {string|null|undefined}
+ *        code: {!number}
+ *      }
+ *    }
+ * }
+ * @param {!number} code
+ * @param {!string} access Valid access keys are:
+ *    'data', 'description' or 'code'
  * @param {!Array<!number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {Array<null|boolean|!Function>}
  */
-const eventCodeFunc = (eventCode, a) => {
-  const p = ['_ev', eventCode.toString()];
+const eventCodeFunc = ([code, access], a) => {
+  const p = ['_ev', code.toString(), access];
   const f = sMap => pathOr(undefined, p)(sMap.get('data'));
   return [null, f];
 };
