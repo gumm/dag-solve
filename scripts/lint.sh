@@ -10,7 +10,7 @@ echo "LINT_TARGET: ${LINT_TARGET}"
 echo "-----------------------------------------------------"
 echo ""
 echo "Now formatting with Clang..."
-shopt -s globstar
-clang-format -i -style=Google ${LINT_TARGET}/**/*.js
+shopt -s globstar extglob
+clang-format -i -style=Google ${LINT_TARGET}/!(node_modules)/**/*.js
 
 echo "Finished"
