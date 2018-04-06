@@ -1,6 +1,6 @@
 {
   "name": "dag-solve",
-  "version": "2.3.10",
+  "version": "2.3.11",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "dag.js",
   "scripts": {
@@ -13,7 +13,10 @@
   "keywords": [
     "dag"
   ],
-  "author": "Jan Badenhorst",
+  "author": {
+    "name": "Jan Badenhorst",
+    "email": "janhendrik.badenhorst@gmail.com"
+  },
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/gumm/dag-solve/issues"
