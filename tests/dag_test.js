@@ -417,6 +417,9 @@ describe('A DAG can be serialized and de-serialized', () => {
   const D = g.makeNode('D').setMath(10);
   const E = g.makeNode('E').setComparator('$1', '<', 10, 'ab');
   g.connect(C, E).connect(E, B).connect(B, A).connect(D, A).connect(A, g.root);
+  g.description = 'Description';
+  g.units = '°kelvin';
+  g.ref = 1234;
 
   const g2 = new DAG();
   let s;

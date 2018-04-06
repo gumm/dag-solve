@@ -23,6 +23,14 @@ class DAG {
     this._meta = null;
 
     /**
+     * Optional reference ID for the DAG.
+     * Not used in calculations, but is dumped and read.
+     * @type {string|number|null}
+     * @private
+     */
+    this._ref = null;
+
+    /**
      * Optional description for the DAG.
      * Not used in calculations, but is dumped and read.
      * @type {!string}
@@ -111,6 +119,24 @@ class DAG {
    */
   set units(s) {
     this._units = s;
+  }
+
+
+  /**
+   * Get the DAG reference.
+   * @returns {*}
+   */
+  get ref() {
+    return this._ref;
+  }
+
+
+  /**
+   * Set the DAG reference.
+   * @param {string|number|undefined|null} s
+   */
+  set ref(s) {
+    this._ref = u.isDef(s) ? s : null;
   }
 
 
@@ -427,7 +453,7 @@ class DAG {
    */
   dump() {
     return JSON.stringify({
-      M: [this._description, this._units],
+      M: [this.description, this.units, this.ref],
       G: [...this.getIdG()].map(([k, s]) => [k, [...s]]),
       N: this.topo.map(e => e.dump())
     });
@@ -483,6 +509,8 @@ class DAG {
         // Attend to the human data
         this.description = j.M ? (j.M[0] || '') : '';
         this.units = j.M ? (j.M[1] || '') : '';
+        this.ref = j.M ? j.M[2] : null;
+
 
         return this;
       } catch (e) {
