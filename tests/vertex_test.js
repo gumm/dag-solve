@@ -26,26 +26,26 @@ describe('Nodes can do math.', () => {
   });
 
   it('The formula may only contain arithmetic operators, numbers, ' +
-      'grouping brackets, spaces and the $-glyph.' +
-      'Anything else will be stripped.',
-      () => {
-        A.setMath('balh-blah(17 - 3)');
-        assert.strictEqual(g.solve(), -14);
-      });
+         'grouping brackets, spaces and the $-glyph.' +
+         'Anything else will be stripped.',
+     () => {
+       A.setMath('balh-blah(17 - 3)');
+       assert.strictEqual(g.solve(), -14);
+     });
 
   it('If the cleaned formula results in nonsensical math, ' +
-      'the DAG returns undefined',
-      () => {
-        A.setMath('blah - blah * blah');
-        assert.strictEqual(g.solve(), undefined);
-      });
+         'the DAG returns undefined',
+     () => {
+       A.setMath('blah - blah * blah');
+       assert.strictEqual(g.solve(), undefined);
+     });
 
   it('If the cleaned formula results the empty string ' +
-      'the DAG returns undefined',
-      () => {
-        A.setMath('blah');
-        assert.strictEqual(g.solve(), undefined);
-      });
+         'the DAG returns undefined',
+     () => {
+       A.setMath('blah');
+       assert.strictEqual(g.solve(), undefined);
+     });
 
   it('A formula can reference a connecting node using the "$n" syntax', () => {
     B.setMath(17);
@@ -72,21 +72,21 @@ describe('Nodes can do math.', () => {
   });
 
   it('If the formula references a node that does not exist, the result ' +
-      'is undefined',
-      () => {
-        g.disconnect(B, A);
-        assert.strictEqual(g.solve(), undefined);
-      });
+         'is undefined',
+     () => {
+       g.disconnect(B, A);
+       assert.strictEqual(g.solve(), undefined);
+     });
 
   it('A single reference to a connecting node is treated ' +
-      'as a constant',
-      () => {
-        g.disconnect(C, A);
-        g.connect(B, A);
-        B.setMath(3);
-        A.setMath('$1');
-        assert.equal(g.solve(), 3);
-      });
+         'as a constant',
+     () => {
+       g.disconnect(C, A);
+       g.connect(B, A);
+       B.setMath(3);
+       A.setMath('$1');
+       assert.equal(g.solve(), 3);
+     });
 
 });
 
@@ -107,14 +107,14 @@ describe('Nodes can do enumeration', () => {
   });
 
   it('An enum element is overwritten when its fist member ' +
-      'already exists',
-      () => {
-        A.addEnum(1, 'A').addEnum(1, 'B').addEnum(1, 'C');
-        assert.strictEqual(g.solve(), 'C')
-      });
+         'already exists',
+     () => {
+       A.addEnum(1, 'A').addEnum(1, 'B').addEnum(1, 'C');
+       assert.strictEqual(g.solve(), 'C')
+     });
 
   it('An enum can be read out',
-      () => {assert.deepStrictEqual(A.enum, [[1, 'C'], [2, 'B'], [3, 'C']])});
+     () => {assert.deepStrictEqual(A.enum, [[1, 'C'], [2, 'B'], [3, 'C']])});
 
   it('An item can be deleted by its first member', () => {
     A.delEnum(1);
@@ -123,12 +123,12 @@ describe('Nodes can do enumeration', () => {
   });
 
   it('The enum keys *may not* be undefined. ' +
-      'Attempting to do so does nothing',
-      () => {
-        A.addEnum(undefined, 'something');
-        assert.deepStrictEqual(A.enum, [[2, 'B'], [3, 'C']]);
-        assert.strictEqual(g.solve(), undefined);
-      });
+         'Attempting to do so does nothing',
+     () => {
+       A.addEnum(undefined, 'something');
+       assert.deepStrictEqual(A.enum, [[2, 'B'], [3, 'C']]);
+       assert.strictEqual(g.solve(), undefined);
+     });
 
   it('The output value of an enum can be a connected node', () => {
     const g = new DAG();
@@ -137,22 +137,15 @@ describe('Nodes can do enumeration', () => {
     const G4 = g.makeNode('GIVE_4').setMath(4);
     const G5 = g.makeNode('GIVE_5').setMath(5);
     const A = g.makeNode('ENUM')
-        .addEnum(1, 'Value was 1')
-        .addEnum(2, '$2')
-        .addEnum(3, '$3')
-        .addEnum(4, '$4');
-    g.connect(A, g.root)
-        .connect(IN, A)
-        .connect(G3, A)
-        .connect(G4, A)
-        .connect(G5, A);
+                  .addEnum(1, 'Value was 1')
+                  .addEnum(2, '$2')
+                  .addEnum(3, '$3')
+                  .addEnum(4, '$4');
+    g.connect(A, g.root).connect(IN, A).connect(G3, A).connect(G4, A).connect(
+        G5, A);
 
-    assert.deepStrictEqual(A.enum, [
-        [ 1, 'Value was 1' ],
-        [ 2, '$2' ],
-        [ 3, '$3' ],
-        [ 4, '$4' ]
-    ]);
+    assert.deepStrictEqual(
+        A.enum, [[1, 'Value was 1'], [2, '$2'], [3, '$3'], [4, '$4']]);
     assert.strictEqual(g.solve(1), 'Value was 1');
     assert.strictEqual(g.solve(2), 3);
     assert.strictEqual(g.solve(3), 4);
@@ -166,9 +159,7 @@ describe('Nodes can make comparisons', () => {
   const IN1 = g.makeNode('IN1').setPath(0);
   const IN2 = g.makeNode('IN2').setPath(1);
   const COMP = g.makeNode('COMP');
-  g.connect(COMP, g.root)
-      .connect(IN1, COMP)
-      .connect(IN2, COMP);
+  g.connect(COMP, g.root).connect(IN1, COMP).connect(IN2, COMP);
 
   it('It can test Equality (==)', () => {
     COMP.setComparator('$1', '==', '$2', 'tf');
@@ -455,25 +446,25 @@ describe('Nodes can have a default or fallback value', () => {
   });
 
   it('With a fallback value, the node fails to the fallback', () => {
-    A.setComparator('$1', '<', 5,  'vu');
+    A.setComparator('$1', '<', 5, 'vu');
     A.setFallback(100);
     assert.strictEqual(g.solve(), 100)
   });
 
   it('The fallback value can be a string', () => {
-    A.setComparator('$1', '<', 5,  'vu');
+    A.setComparator('$1', '<', 5, 'vu');
     A.setFallback('string');
     assert.strictEqual(g.solve(), 'string')
   });
 
   it('The fallback value can be a boolean', () => {
-    A.setComparator('$1', '<', 5,  'vu');
+    A.setComparator('$1', '<', 5, 'vu');
     A.setFallback(false);
     assert.strictEqual(g.solve(), false)
   });
 
   it('The fallback value can be a number', () => {
-    A.setComparator('$1', '<', 5,  'vu');
+    A.setComparator('$1', '<', 5, 'vu');
     A.setFallback(3);
     assert.strictEqual(g.solve(), 3)
   });
@@ -500,11 +491,11 @@ describe('Nodes can have a default or fallback value', () => {
   });
 
   it('A node with no function, but a fallback, is treated as a constant',
-      () => {
-        const m = new DAG();
-        m.connect(m.makeNode('C').setFallback('fallback'), m.root);
-        assert.strictEqual(m.solve(), 'fallback');
-      });
+     () => {
+       const m = new DAG();
+       m.connect(m.makeNode('C').setFallback('fallback'), m.root);
+       assert.strictEqual(m.solve(), 'fallback');
+     });
 });
 
 describe('Nodes can be dumped.', () => {

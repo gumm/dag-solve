@@ -1,6 +1,6 @@
 {
   "name": "dag-solve",
-  "version": "2.3.11",
+  "version": "2.3.12",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "dag.js",
   "scripts": {
@@ -26,6 +26,6 @@
   "devDependencies": {
     "be-sert": "*",
     "istanbul": "*",
-    "mocha": "*"
+    "mocha": "^5.0.5"
   }
 }

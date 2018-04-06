@@ -376,13 +376,13 @@ describe('A dag can be given a value/object to compute on', () => {
 
   it('The "debug" method returns solutions and collected errors', () => {
     const r = new Map()
-        .set('topoIds',[ 3, 2, 4, 1, 0 ])
-        .set('data', data)
-        .set(3, 10)
-        .set(2, 3)
-        .set(4, 10)
-        .set(1, 1.25)
-        .set(0, 1.25);
+                  .set('topoIds', [3, 2, 4, 1, 0])
+                  .set('data', data)
+                  .set(3, 10)
+                  .set(2, 3)
+                  .set(4, 10)
+                  .set(1, 1.25)
+                  .set(0, 1.25);
     assert.deepStrictEqual(g.debug(data), r)
   });
 

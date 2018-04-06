@@ -13,7 +13,6 @@ const nodeMaker = gen => n => new Node(gen.next().value, n);
  */
 class DAG {
   constructor() {
-
     /**
      * Dag can be given meta data for the duration of its life.
      * The meta is not persisted across dump and reads
@@ -440,8 +439,7 @@ class DAG {
 
     return data => {
       sMap.set('data', data);
-      const r = cleanNodes.reduce(
-          (p, n) => n.solve(p), sMap);
+      const r = cleanNodes.reduce((p, n) => n.solve(p), sMap);
       return debug ? r : r.get(rootId);
     };
   }
@@ -467,7 +465,7 @@ class DAG {
    *    the rollback process itself does not.
    * @returns {DAG}
    */
-  read(json, allowRollback=true) {
+  read(json, allowRollback = true) {
     // Read the string
     const j = u.safeJsonParse(json);
 
@@ -514,7 +512,9 @@ class DAG {
 
         return this;
       } catch (e) {
-        if (allowRollback) { this.read(rollback, false); }
+        if (allowRollback) {
+          this.read(rollback, false);
+        }
       }
     }
   }

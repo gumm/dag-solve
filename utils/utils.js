@@ -115,7 +115,7 @@ const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
-}
+  }
 
 /**
  * @param {!number} precision
@@ -138,7 +138,7 @@ const safeJsonParse = json => {
   try {
     parsed = JSON.parse(json);
   } catch (e) {
-  }
+    }
   return parsed;
 };
 
@@ -194,8 +194,8 @@ const mathCleaner = s => {
   const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.'];
   const builtIns = ['int', 'len'];
   const ref = ['$', ' ', '\''];
-  const combined = [
-      ...arithmeticOps, ...numbers, ...ref, ...bitwiseOps, ...builtIns];
+  const combined =
+      [...arithmeticOps, ...numbers, ...ref, ...bitwiseOps, ...builtIns];
 
   return [...s].filter(e => combined.includes(e)).join('');
 };
@@ -210,8 +210,7 @@ const int = e => parseInt(e, 10);
 const funcMaker = fn => {
   try {
     return [
-      null,
-      new Function(argRefSymbol, `
+      null, new Function(argRefSymbol, `
       const len = e => ('' + e).length;
       const int = e => parseInt(e, 10);
       try { return ${fn}; } catch(e) { return; }
@@ -247,7 +246,7 @@ const mathFunc = (m, a) => {
     }
   } else {
     [err, f] = funcMaker(m);
-  }
+    }
   return [err, f];
 };
 
@@ -260,7 +259,7 @@ const mathFunc = (m, a) => {
 const enumFunc = (e, a) => {
 
   const r = e.map(([k, v]) => {
-    if(isString(v) && isRefString(v)) {
+    if (isString(v) && isRefString(v)) {
       const i = getRefIndex(v);
       return [k, sMap => sMap.get(a[i])];
     } else {
@@ -269,10 +268,13 @@ const enumFunc = (e, a) => {
   });
 
   const m = new Map(r);
-  return [null, sMap => {
-    const f = m.get(sMap.get(a[0]));
-    return f ? f(sMap) : undefined;
-  }];
+  return [
+    null,
+    sMap => {
+      const f = m.get(sMap.get(a[0]));
+      return f ? f(sMap) : undefined;
+    }
+  ];
 };
 
 /**
@@ -292,7 +294,7 @@ const compFuncHelper = (v, a) => {
     f = sMap => sMap.get(a[i]);
   } else {
     f = () => v
-  }
+    }
   return f;
 };
 
@@ -309,10 +311,13 @@ const comparatorFunc = (c, a) => {
   const t = makeComparator(cmp);
   const outF = genOutput(outputFormat);
 
-  return [null, sMap => {
-    const [s1, s2]  = [r1(sMap),  r2(sMap)];
-    return outF(t(s1, s2), s1, s2);
-  }];
+  return [
+    null,
+    sMap => {
+      const [s1, s2] = [r1(sMap), r2(sMap)];
+      return outF(t(s1, s2), s1, s2);
+    }
+  ];
 };
 
 
@@ -328,16 +333,19 @@ const betweenFunc = (b, a) => {
   const sb = compFuncHelper(s2, a);
   const outF = genOutput(outputFormat);
 
-  return [null, sMap => {
-    const [input, stopA, stopB]  = [val(sMap), sa(sMap),  sb(sMap)];
-    const [min, max] = [Math.min(stopA, stopB), Math.max(stopA, stopB)];
-    if (input >= min && input <= max) {
-      return outF(true, input, min);
-    } else if (input >= min) {
-      return outF(false, input, max);
+  return [
+    null,
+    sMap => {
+      const [input, stopA, stopB] = [val(sMap), sa(sMap), sb(sMap)];
+      const [min, max] = [Math.min(stopA, stopB), Math.max(stopA, stopB)];
+      if (input >= min && input <= max) {
+        return outF(true, input, min);
+      } else if (input >= min) {
+        return outF(false, input, max);
+        }
+      return outF(false, input, min);
     }
-    return outF(false, input, min);
-  }];
+  ];
 };
 
 /**
@@ -352,7 +360,7 @@ const dataPathFunc = (p, a) => {
     f = sMap => sMap.get('data');
   } else {
     f = sMap => pathOr(undefined, p)(sMap.get('data'));
-  }
+    }
   return [null, f];
 };
 
@@ -499,8 +507,12 @@ const pathOr = (f, arr) => e => {
  * @returns {!number}
  */
 const extrapolate = (x1, y1, x2, y2) => x3 => {
-  if (y1 === y2) { return y1 }
-  if (x1 === x2) { return undefined }
+  if (y1 === y2) {
+    return y1
+    }
+  if (x1 === x2) {
+    return undefined
+    }
   return x3 * Math.tan(Math.atan((y2 - y1) / (x2 - x1)));
 };
 

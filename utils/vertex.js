@@ -234,7 +234,6 @@ class Node {
    * @returns {Node}
    */
   setEvCode(n, opt_access) {
-
     if (u.isDef(n)) {
       this._clearAll();
       let access = 'data';
@@ -243,7 +242,7 @@ class Node {
         access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
       }
       this._evCode = [n, access];
-    }
+      }
 
     return this;
   }
@@ -261,11 +260,10 @@ class Node {
    * @returns {Node}
    */
   setPath(...a) {
-
     if ([...a].length) {
       this._clearAll();
       this._path = [...a];
-    }
+      }
 
     return this;
   }
@@ -283,11 +281,10 @@ class Node {
    * @returns {Node}
    */
   setMath(s) {
-
     if (u.isDef(s)) {
       this._clearAll();
       this._math = s;
-    }
+      }
 
     return this;
   }
@@ -305,11 +302,10 @@ class Node {
    * @returns {Node}
    */
   setRound(int) {
-
     if (u.isNumber(int)) {
       this._clearAll();
       this._round = u.pRound(0)(int);
-    }
+      }
 
     return this;
   };
@@ -346,14 +342,14 @@ class Node {
     let pass = true;
     pass = (u.isNumber(v1) || u.isRefString(v1)) && pass;
     pass = (u.isNumber(v2) || u.isRefString(v2)) && pass;
-    pass = (["!=", "!==", "==", "===",
-      "<=", ">=", "<", ">"].includes(cmp)) && pass;
-    pass = (["vu", "10", "tf", "ab"].includes(outputFormat)) && pass;
+    pass = (['!=', '!==', '==', '===', '<=', '>=', '<', '>'].includes(cmp)) &&
+        pass;
+    pass = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && pass;
 
     if (pass) {
       this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-    }
+      }
 
     return this;
   };
@@ -395,12 +391,12 @@ class Node {
     isClean = (u.isNumber(v) || u.isRefString(v)) && isClean;
     isClean = (u.isNumber(s1) || u.isRefString(s1)) && isClean;
     isClean = (u.isNumber(s2) || u.isRefString(s2)) && isClean;
-    isClean = (["vu", "10", "tf", "ab"].includes(outputFormat)) && isClean;
+    isClean = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && isClean;
 
     if (isClean) {
       this._clearAll();
       this._between = [v, s1, s2, outputFormat];
-    }
+      }
 
     return this;
   };
@@ -437,7 +433,8 @@ class Node {
   /**
    * @returns {Array<Array<*>>}
    */
-  get enum() {
+  get enum
+  () {
     return this._enum;
   }
 
@@ -474,7 +471,7 @@ class Node {
     } else if (this._fallback) {
       // This does nothing but return a fallback value
       [this._nodus, this._func] = [null, () => this._fallback];
-    }
+      }
 
     return this;
   }
@@ -488,14 +485,13 @@ class Node {
    * @returns {!Map}
    */
   solve(sMap) {
-
     if (!this._nodus) {
       const r = this._func(sMap);
       const reply = r === undefined ? this.fallback : r;
       return sMap.set(this._id, reply);
     } else {
       this.clean()
-    }
+      }
     if (!this._nodus) {
       return this.solve(sMap);
     } else {
