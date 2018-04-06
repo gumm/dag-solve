@@ -23,6 +23,22 @@ class DAG {
     this._meta = null;
 
     /**
+     * Optional description for the DAG.
+     * Not used in calculations, but is dumped and read.
+     * @type {!string}
+     * @private
+     */
+    this._description = '';
+
+    /**
+     * Optional description of the units.
+     * Not used in calculations, but is dumped and read.
+     * @type {!string}
+     * @private
+     */
+    this._units = '';
+
+    /**
      * The container of our DAG
      * @type {Map<Node, Set<Node>>}
      */
@@ -42,6 +58,8 @@ class DAG {
     this._rootNode.setMath('$1')
   }
 
+
+  //---------------------------------------------[ Meta and Stuff for Humans ]--
   /**
    * Get the DAG meta
    * @returns {*}
@@ -49,6 +67,7 @@ class DAG {
   get meta() {
     return this._meta;
   }
+
 
   /**
    * Set the DAG meta. Meta is not persisted across dump and read cycles.
@@ -58,6 +77,44 @@ class DAG {
     this._meta = any;
   }
 
+
+  /**
+   * Get the DAG description
+   * @returns {*}
+   */
+  get description() {
+    return this._description;
+  }
+
+
+  /**
+   * Set the DAG description.
+   * @param {string} s
+   */
+  set description(s) {
+    this._description = s;
+  }
+
+
+  /**
+   * Get the DAG units
+   * @returns {*}
+   */
+  get units() {
+    return this._units;
+  }
+
+
+  /**
+   * Set the DAG units.
+   * @param {string} s
+   */
+  set units(s) {
+    this._units = s;
+  }
+
+
+  //-----------------------------------------------------------------[ Setup ]--
   /**
    * The single root node.
    * @returns {!Node}
@@ -65,6 +122,7 @@ class DAG {
   get root() {
     return this._rootNode;
   }
+
 
   /**
    * The nodes in the order that they were added.
@@ -74,6 +132,7 @@ class DAG {
     return [...this.G.keys()];
   }
 
+
   /**
    * The graph description in the form of Node -> Set<Node>
    * @returns {!Map}
@@ -81,6 +140,7 @@ class DAG {
   get graph() {
     return this.G;
   }
+
 
   /**
    * A topological sorted array of node.
@@ -92,6 +152,7 @@ class DAG {
     return u.topoSort(this.G);
   }
 
+
   /**
    * Leafs are nodes without any in-degrees. The partake in the solution.
    * NOTE: The root node *is* considered a leaf if nothing connects to it.
@@ -101,6 +162,7 @@ class DAG {
     const [, Q] = u.leafNodes(this.G);
     return Q;
   }
+
 
   /**
    * Orphans are nodes that wont partake in the solution. That is nodes that
@@ -118,6 +180,7 @@ class DAG {
     return orphans;
   }
 
+
   /**
    * A list of the node names
    * @return {!Array<!string>}
@@ -125,6 +188,7 @@ class DAG {
   get names() {
     return this.nodes.map(e => e.name);
   }
+
 
   /**
    * A list of the node names
@@ -134,6 +198,7 @@ class DAG {
     return this.topo.map(e => e.name);
   }
 
+
   /**
    * A list of the node IDs
    * @return {!Array<!number>}
@@ -142,6 +207,7 @@ class DAG {
     return this.nodes.map(e => e.id);
   }
 
+
   /**
    * A list of the node IDs
    * @return {!Array<!number>}
@@ -149,6 +215,7 @@ class DAG {
   get topoIds() {
     return this.topo.map(e => e.id);
   }
+
 
   /**
    * @param {!string} name
@@ -159,6 +226,7 @@ class DAG {
     this.G.set(n, new Set());
     return n;
   }
+
 
   /**
    * Add a node the the graph without connecting it.
@@ -181,6 +249,7 @@ class DAG {
     return n;
   }
 
+
   /**
    * Delete a node. That is completely remove it from the DAG.
    * The node is disconnected from all its connections, and deleted.
@@ -201,6 +270,7 @@ class DAG {
       }
     return deleted;
   }
+
 
   /**
    * Connect node a to node b. That is, make node a an input to node b.
@@ -241,6 +311,7 @@ class DAG {
     return this;
   }
 
+
   /**
    * Disconnect node a from node b.
    * That is remove node a as an input to node b.
@@ -256,6 +327,7 @@ class DAG {
     return this
   }
 
+
   /**
    * Recursively delete all the orphaned nodes.
    * This mutates the DAG Map.
@@ -270,6 +342,7 @@ class DAG {
     return this;
   }
 
+
   /**
    * Return an array of all the nodes that connects to the given node.
    * @param {!Node} n
@@ -280,6 +353,7 @@ class DAG {
     return [...this.G.entries()].reduce(hasN, []);
   }
 
+
   /**
    * Return an array of all the nodes that the given node connects to.
    * @param {!Node} n
@@ -289,6 +363,7 @@ class DAG {
     return [...this.G.get(n)];
   }
 
+
   /**
    * Return a Map object that describes this DAG, but with only the IDs as
    * values.
@@ -296,6 +371,7 @@ class DAG {
    */
   getIdG(){return [...this.G].reduce(
       (p, [k, s]) => p.set(k.id, new Set([...s].map(u.grabId))), new Map())}
+
 
   /**
    * Compute the value of the DAG. That is, call the solve function in each
@@ -310,6 +386,7 @@ class DAG {
     return this.getSolver()(opt_d);
   }
 
+
   /**
    * Solve the dag, but return an array of the value of each node in
    * topo order. The same order a topo, topoIds and topoNames
@@ -320,6 +397,11 @@ class DAG {
     return this.getSolver(true)(opt_d);
   }
 
+
+  /**
+   * @param {boolean=} debug
+   * @returns {function(*=): *}
+   */
   getSolver(debug = false) {
     const m = u.removeOrphans(this.getIdG());
     const validTopoNodes = this.topo.filter(e => m.has(e.id));
@@ -339,17 +421,18 @@ class DAG {
   }
 
 
-
   /**
    * Dump the DAG to a JSON string.
    * @returns {!string}
    */
   dump() {
     return JSON.stringify({
+      M: [this._description, this._units],
       G: [...this.getIdG()].map(([k, s]) => [k, [...s]]),
       N: this.topo.map(e => e.dump())
     });
   }
+
 
   // noinspection JSUnusedGlobalSymbols
   /**
@@ -396,12 +479,14 @@ class DAG {
         this.nodes.forEach(n => {
           n._args = j.N.find(e => e.I === n.id).A;
         });
+
+        // Attend to the human data
+        this.description = j.M ? (j.M[0] || '') : '';
+        this.units = j.M ? (j.M[1] || '') : '';
+
         return this;
-        }
-      catch (e) {
-        if (allowRollback) {
-          this.read(rollback, false);
-        }
+      } catch (e) {
+        if (allowRollback) { this.read(rollback, false); }
       }
     }
   }
