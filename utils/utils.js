@@ -1,30 +1,12 @@
+const B = require('badu');
+
 const argRefSymbol = 'X';
-
-/**
- * @param {*} x
- * @return {!string}
- */
-const whatType = x => typeof x;
-
-
-/**
- * @param {*} n
- * @return {!boolean}
- */
-const isNumber = n =>
-    whatType(n) === 'number' && !Number.isNaN(/** @type {number}*/ (n));
-
-/**
- * @param {*} n
- * @return {!boolean}
- */
-const isString = n => whatType(n) === 'string';
 
 /**
  * @param {*} m
  * @returns {boolean}
  */
-const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
+const isRefString = m => B.isString(m) && !Number.isNaN(getRefIndex(m));
 
 /**
  * @param {!string} m Something like $1
@@ -32,32 +14,6 @@ const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
  */
 const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
 
-/**
- * A strict same elements in same order comparison.
- * Example:
- *    console.log('Same Arrays:', sameArr([1, 2], [1, 2]));
- *    console.log('Same Arrays:', sameArr([2, 1], [1, 2]));
- * @param {!Array.<*>} a
- * @param {!Array.<*>} b
- */
-const sameArr = (a, b) =>
-    a.length === b.length && a.every((c, i) => b[i] === c);
-
-/**
- * @param {?} t
- * @returns {boolean}
- */
-const isDef = t => t !== undefined;
-
-/**
- * @returns {undefined}
- */
-const alwaysUndef = () => undefined;
-
-/**
- * @returns {boolean}
- */
-const alwaysFalse = () => false;
 
 /**
  * @param {!Node} n
@@ -65,12 +21,6 @@ const alwaysFalse = () => false;
  */
 const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
 
-/**
- * Find the biggest number in a list of numbers
- * @param {!Array<!number>} arr
- * @returns {!number}
- */
-const max = arr => Math.max(...arr);
 
 /**
  * Given an array of two-element arrays, and a key and value,
@@ -99,14 +49,6 @@ const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
 const grabId = n => n._id;
 
 /**
- * Return the last element of an array, or undefined if the array is empty.
- * @param {!Array<*>} arr
- * @returns {*}
- */
-const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
-
-
-/**
  * A generator function to produce consecutive ids, starting from
  * n + 1 of n. If n is not given, use 0.
  * @param {number=} opt_n
@@ -115,18 +57,10 @@ const tail = arr => arr[arr.length ? arr.length - 1 : undefined];
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
-  }
+}
 
-/**
- * @param {!number} precision
- * @returns {function(!number): number}
- */
-const pRound = precision => {
-  const factor = Math.pow(10, precision);
-  return number => Math.round(number * factor) / factor;
-};
 
-/**
+  /**
  * Given a Json string, parse it without blowing up.
  * @param json
  * @returns {*}
@@ -150,6 +84,7 @@ const safeJsonParse = json => {
  * @returns {!function(!number): boolean}
  */
 const makeComparator = (c) => {
+  // noinspection EqualityComparisonWithCoercionJS
   const m = {
     '!=': (v1, v2) => v1 != v2,
     '==': (v1, v2) => v1 == v2,
@@ -160,7 +95,7 @@ const makeComparator = (c) => {
     '<': (v1, v2) => v1 < v2,
     '>': (v1, v2) => v1 > v2
   };
-  return m[c] || alwaysFalse;
+  return m[c] || B.alwaysFalse;
 };
 
 /**
@@ -173,13 +108,14 @@ const makeComparator = (c) => {
  * @returns {(function(boolean, number, number): (undefined|boolean|number))}
  */
 const genOutput = rv => {
+  // noinspection JSUnusedLocalSymbols
   const m = {
     'vu': (b, v1, v2) => b ? v1 : undefined,
     '10': (b, v1, v2) => b ? 1 : 0,
     'tf': (b, v1, v2) => b,
     'ab': (b, v1, v2) => b ? v1 : v2
   };
-  return m[rv] || alwaysUndef;
+  return m[rv] || B.alwaysUndef;
 };
 
 /**
@@ -217,7 +153,7 @@ const funcMaker = fn => {
       `)
     ];
   } catch (err) {
-    return [`Could not make a function with "${fn}"`, alwaysUndef];
+    return [`Could not make a function with "${fn}"`, B.alwaysUndef];
   }
 };
 
@@ -236,8 +172,8 @@ const funcMaker = fn => {
  */
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
-  let f = alwaysUndef;
-  if (isString(m)) {
+  let f = B.alwaysUndef;
+  if (B.isString(m)) {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}.get(${c})`),
         mathCleaner(m));
@@ -259,7 +195,7 @@ const mathFunc = (m, a) => {
 const enumFunc = (e, a) => {
 
   const r = e.map(([k, v]) => {
-    if (isString(v) && isRefString(v)) {
+    if (B.isString(v) && isRefString(v)) {
       const i = getRefIndex(v);
       return [k, sMap => sMap.get(a[i])];
     } else {
@@ -283,13 +219,13 @@ const enumFunc = (e, a) => {
  * @returns {Array<boolean|!Function>}
  */
 const roundFunc = (r, a) => {
-  const round = pRound(r);
+  const round = B.pRound(r);
   return [null, sMap => round(sMap.get(a[0]))]
 };
 
 const compFuncHelper = (v, a) => {
   let f;
-  if (isString(v)) {
+  if (B.isString(v)) {
     const i = getRefIndex(v);
     f = sMap => sMap.get(a[i]);
   } else {
@@ -348,6 +284,7 @@ const betweenFunc = (b, a) => {
   ];
 };
 
+// noinspection JSUnusedLocalSymbols
 /**
  * @param {!Array<(string|number)>} p The path into the data structure.
  * @param {!Array<!number>} a
@@ -355,15 +292,16 @@ const betweenFunc = (b, a) => {
  */
 const dataPathFunc = (p, a) => {
   let f;
-  if (sameArr(p, [null])) {
+  if (B.sameArr(p, [null])) {
     // By convention when the path is null, just return the data...
     f = sMap => sMap.get('data');
   } else {
-    f = sMap => pathOr(undefined, p)(sMap.get('data'));
+    f = sMap => B.pathOr(undefined, p)(sMap.get('data'));
     }
   return [null, f];
 };
 
+// noinspection JSUnusedLocalSymbols
 /**
  * The data structure spec describes the event data structure as:
  *  {_ev:
@@ -383,7 +321,7 @@ const dataPathFunc = (p, a) => {
  */
 const eventCodeFunc = ([code, access], a) => {
   const p = ['_ev', code.toString(), access];
-  const f = sMap => pathOr(undefined, p)(sMap.get('data'));
+  const f = sMap => B.pathOr(undefined, p)(sMap.get('data'));
   return [null, f];
 };
 
@@ -480,47 +418,7 @@ const removeOrphans = G => {
   return G;
 };
 
-/**
- * @param {*} f A fallback value
- * @param {!Array<string|number>} arr
- * @returns {function((Object|Array)):(*)}
- */
-const pathOr = (f, arr) => e => {
-  const r = arr.reduce((p, c) => {
-    try {
-      return p[c];
-    } catch (err) {
-      return undefined
-    }
-  }, e);
-  return r === undefined ? f : r;
-};
-
-/**
- * Given 2 coordinates, (x1, y1) and (x2, y2) what is the y value
- * of a 3rd coordinate on the same line described by the two initial coordinates
- * and a given x-value.
- * @param {!number} x1 Coord 1 x value
- * @param {!number} y1 Coord 1 y value
- * @param {!number} x2 Coord 2 x value
- * @param {!number} y2 Coord 2 y value
- * @returns {!number}
- */
-const extrapolate = (x1, y1, x2, y2) => x3 => {
-  if (y1 === y2) {
-    return y1
-    }
-  if (x1 === x2) {
-    return undefined
-    }
-  return x3 * Math.tan(Math.atan((y2 - y1) / (x2 - x1)));
-};
-
 module.exports = {
-  extrapolate,
-  pathOr,
-  alwaysUndef,
-  isDef,
   enumSet,
   enumUnSet,
   mathFunc,
@@ -530,23 +428,17 @@ module.exports = {
   betweenFunc,
   dataPathFunc,
   eventCodeFunc,
-  pRound,
   idGen,
   topoSort,
   leafNodes,
-  max,
   isIn,
   grabId,
   removeOrphans,
-  tail,
   safeJsonParse,
   mathCleaner,
   funcMaker,
-  sameArr,
-  isString,
   isRefString,
   getRefIndex,
-  isNumber,
   makeComparator,
   genOutput
 };

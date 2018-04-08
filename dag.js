@@ -1,3 +1,4 @@
+const B = require('badu');
 const u = require('./utils/utils.js');
 const Node = require('./utils/vertex.js');
 
@@ -135,7 +136,7 @@ class DAG {
    * @param {string|number|undefined|null} s
    */
   set ref(s) {
-    this._ref = u.isDef(s) ? s : null;
+    this._ref = B.isDef(s) ? s : null;
   }
 
 
@@ -270,7 +271,7 @@ class DAG {
       return false;
     }
     this.G.set(n, new Set());
-    this._nodeMaker = nodeMaker(u.idGen(u.max(this.ids)));
+    this._nodeMaker = nodeMaker(u.idGen(B.maxInArr(this.ids)));
     return n;
   }
 

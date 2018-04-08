@@ -1,4 +1,5 @@
 const assert = require('assert');
+const B = require('badu');
 const u = require('../utils/utils.js');
 
 describe('The mathCleaner function', () => {
@@ -52,21 +53,6 @@ describe('The funcMaker function', () => {
 });
 
 describe('Type utilities', () => {
-  it('Test for a number', () => {
-    assert.strictEqual(u.isNumber(1), true);
-    assert.strictEqual(u.isNumber(NaN), false);
-    assert.strictEqual(u.isNumber('string'), false);
-    assert.strictEqual(u.isNumber({}), false);
-    assert.strictEqual(u.isNumber([]), false);
-  });
-
-  it('Test for a string', () => {
-    assert.strictEqual(u.isString(1), false);
-    assert.strictEqual(u.isString(NaN), false);
-    assert.strictEqual(u.isString('string'), true);
-    assert.strictEqual(u.isString({}), false);
-    assert.strictEqual(u.isString([]), false);
-  });
 
   it('Test for a reference string ($1 etc)', () => {
     assert.strictEqual(u.isRefString(1), false);
@@ -83,30 +69,6 @@ describe('Type utilities', () => {
     // reference.
     assert.strictEqual(u.getRefIndex('$1'), 0);
     assert.strictEqual(u.getRefIndex('$5'), 4);
-  });
-
-  it('Given a reference string, get its index', () => {
-    // Check that the array elements are the same and in the same order
-    assert.strictEqual(u.sameArr([1, 2, 3], [1, 2, 3]), true);
-    assert.strictEqual(u.sameArr([1, 2, 3], [1, 2]), false);
-    assert.strictEqual(u.sameArr([1, 2], [1, 2, 3]), false);
-    assert.strictEqual(u.sameArr([1, 2, 3], [2, 1, 3]), false);
-  });
-
-  it('Check that something is defined', () => {
-    // Just a check to make sure something is not strictly undefined
-    assert.strictEqual(u.isDef({}), true);
-    assert.strictEqual(u.isDef([]), true);
-    assert.strictEqual(u.isDef(null), true);
-    assert.strictEqual(u.isDef(NaN), true);
-    assert.strictEqual(u.isDef(0), true);
-    assert.strictEqual(u.isDef(false), true);
-    let a;
-    assert.strictEqual(u.isDef(a), false);
-  });
-
-  it('When called always return undefined', () => {
-    assert.strictEqual(u.alwaysUndef(), undefined);
   });
 
   it('Make equality comparator', () => {
@@ -220,10 +182,10 @@ describe('Type utilities', () => {
       'SOME': [1, 2, {'weird': {'data': [4, 10, 'structure', [0, 3]]}}]
     };
     let o;
-    o = u.pathOr('failed', ['SOME', 2, 'weird', 'data', 3, 1]);
+    o = B.pathOr('failed', ['SOME', 2, 'weird', 'data', 3, 1]);
     assert.strictEqual(o(data), 3);
 
-    o = u.pathOr('failed', ['SOME', 0, 'weird', 'data', 3, 1]);
+    o = B.pathOr('failed', ['SOME', 0, 'weird', 'data', 3, 1]);
     assert.strictEqual(o(data), 'failed');
   });
 

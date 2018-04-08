@@ -1,3 +1,4 @@
+const B = require('badu');
 const u = require('./utils.js');
 
 /**
@@ -89,7 +90,7 @@ class Node {
      * @type {function(...*): (undefined|*)}
      * @private
      */
-    this._func = u.alwaysUndef;
+    this._func = B.alwaysUndef;
 
     // We overwrite *some* elements, but we keep the _args and _state both
     // as default, because the Graph will populate those.
@@ -234,11 +235,11 @@ class Node {
    * @returns {Node}
    */
   setEvCode(n, opt_access) {
-    if (u.isDef(n)) {
+    if (B.isDef(n)) {
       this._clearAll();
       let access = 'data';
       if (opt_access) {
-        const ac = opt_access.toLowerCase();
+        const ac = B.toLowerCase(opt_access);
         access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
       }
       this._evCode = [n, access];
@@ -281,7 +282,7 @@ class Node {
    * @returns {Node}
    */
   setMath(s) {
-    if (u.isDef(s)) {
+    if (B.isDef(s)) {
       this._clearAll();
       this._math = s;
       }
@@ -302,9 +303,9 @@ class Node {
    * @returns {Node}
    */
   setRound(int) {
-    if (u.isNumber(int)) {
+    if (B.isNumber(int)) {
       this._clearAll();
-      this._round = u.pRound(0)(int);
+      this._round = B.pRound(0)(int);
       }
 
     return this;
@@ -340,8 +341,8 @@ class Node {
    */
   setComparator(v1, cmp, v2, outputFormat) {
     let pass = true;
-    pass = (u.isNumber(v1) || u.isRefString(v1)) && pass;
-    pass = (u.isNumber(v2) || u.isRefString(v2)) && pass;
+    pass = (B.isNumber(v1) || u.isRefString(v1)) && pass;
+    pass = (B.isNumber(v2) || u.isRefString(v2)) && pass;
     pass = (['!=', '!==', '==', '===', '<=', '>=', '<', '>'].includes(cmp)) &&
         pass;
     pass = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && pass;
@@ -388,9 +389,9 @@ class Node {
    */
   setBetween(v, s1, s2, outputFormat) {
     let isClean = true;
-    isClean = (u.isNumber(v) || u.isRefString(v)) && isClean;
-    isClean = (u.isNumber(s1) || u.isRefString(s1)) && isClean;
-    isClean = (u.isNumber(s2) || u.isRefString(s2)) && isClean;
+    isClean = (B.isNumber(v) || u.isRefString(v)) && isClean;
+    isClean = (B.isNumber(s1) || u.isRefString(s1)) && isClean;
+    isClean = (B.isNumber(s2) || u.isRefString(s2)) && isClean;
     isClean = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && isClean;
 
     if (isClean) {
@@ -448,7 +449,7 @@ class Node {
       // This node does enums
       [this._nodus, this._func] = u.enumFunc(this.enum, this.args);
 
-    } else if (u.isDef(this.round)) {
+    } else if (B.isDef(this.round)) {
       // This node does rounding
       [this._nodus, this._func] = u.roundFunc(this.round, this.args);
 
