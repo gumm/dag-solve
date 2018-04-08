@@ -1,6 +1,6 @@
 # dag-solve
 
-[![Build Status](https://travis-ci.org/gumm/dag-solve.svg?branch=master)](https://travis-ci.org/gumm/dag-solve.svg?branch=master)
+[![Build Status](https://travis-ci.org/gumm/dag-solve.svg?branch=master)](https://travis-ci.org/gumm/dag-solve)
 
 Directed acyclic graph (DAG) based solver.
 The graphs built here always has a single root node, and this root node,
