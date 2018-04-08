@@ -1,6 +1,6 @@
 {
   "name": "dag-solve",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "dag.js",
   "scripts": {
@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/gumm/dag-solve#readme",
   "dependencies": {
-    "badu": "^1.0.1"
+    "badu": "^1.1.0"
   },
   "devDependencies": {
     "be-sert": "*",
