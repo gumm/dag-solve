@@ -29,7 +29,7 @@
   "homepage": "https://github.com/gumm/dag-solve#readme",
   "dependencies": {},
   "devDependencies": {
-    "badu": "*",
+    "badu": "^1.2.10",
     "be-sert": "*",
     "esm": "^3.0.17",
     "google-closure-compiler": "^20180402.0.0",
