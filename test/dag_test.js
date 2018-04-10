@@ -381,7 +381,8 @@ describe('A dag can be given a value/object to compute on', () => {
                   .set(2, 3)
                   .set(4, 10)
                   .set(1, 1.25)
-                  .set(0, 1.25);
+                  .set(0, 1.25)
+                  .set('topoNames', ['D', 'C', 'E', 'A', 'ROOT']);
     assert.deepStrictEqual(g.debug(data), r)
   });
 

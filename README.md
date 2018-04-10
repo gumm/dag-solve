@@ -70,6 +70,24 @@ g.leafs;      // An array of leaf nodes. Nodes without any
 g.orphans;    // An array of nodes without out-degrees. 
               // Excludes the root node
 
+// Getter and setter methods are available to store human readable
+// stuff about the graph
+
+g.description = 'Calculates temp';
+g.description; // 'Calculates temp'
+
+g.units = '°C';
+g.units; // '°C';
+
+g.ref = 123;
+g.ref; // 123
+
+// Note: meta is not dumped or restored via the dump/read cycle.
+// It is intended for as an in-memory placeholder if needed.
+g.meta = {'Anything': ['goes']};
+g.meta; // { Anything: [ 'goes' ] }
+
+
 ```
 ## Structure the graph
 ```javascript
@@ -118,7 +136,7 @@ g.leafs;              // [ A ]
 ```
 ## Nodes can do things
 ```javascript
-const DAG = require('dag-solve').DAG;
+const DAG = require('dag-solve');
 
 //   +-------------------------+
 //   |                         |
@@ -136,6 +154,9 @@ const DAG = require('dag-solve').DAG;
 //       +---+     +---+
 
 const g = new DAG();
+g.description = 'Calc Temp';
+g.units = '°C';
+g.ref = 123;
 const A = g.makeNode('A').setMath('$1 * $2 / $3').setFallback(21);
 const B = g.makeNode('B').setMath('$1 + $2');
 const C = g.makeNode('C').setComparator('$1', '<', 100, 'ab');
@@ -169,7 +190,9 @@ g.debug();    // [ 123, 3.456, 100, 103.456, 3682.027.., 3682.027.. ]
 const RND = g.makeNode('rounder').setRound(2);
 
 g.disconnect(A, g.root).connect(RND, g.root).connect(A, RND);
-g.debug(); // [ 123, 3.456, 100, 103.456, 3682.027..., 3682.03, 3682.03 ]
+g.debug(); // Map with the results of each step mapped to that step's id.
+           // Also includes a key 'topIds' and 'topoNames' with the
+           // relevant topo-sorted arrays of IDs and names respectively.
 g.solve(); // 3682.03
 ```
 # Use the solver
@@ -206,31 +229,33 @@ const json = g.dump();
 ```
 which produces this JSON...
 ```json
-{ "G": [
-    [0,[]],
-    [1,[6]],
-    [2,[1]],
-    [3,[2]],
-    [4,[3,5,1]],
-    [5,[2,1]],
-    [6,[0]]
+{
+  "M": ["Calc Temp", "°C", 123],
+  "G": [
+    [0, []],
+    [1, [6]],
+    [2, [1]],
+    [3, [2]],
+    [4, [3, 5, 1]],
+    [5, [2, 1]],
+    [6, [0]]
   ],
-  "N":[
-    {"I":4,"N":"D","A":[],"E":[],"P":["v"],"C":[]},
-    {"I":5,"N":"E","A":[4],"D":3.456,"E":[[10,0.1],[3,-5]],"P":[],"C":[]},
-    {"I":3,"N":"C","A":[4],"E":[],"P":[],"C":["$1","<",100,"ab"]},
-    {"I":2,"N":"B","A":[3,5],"M":"$1 + $2","E":[],"P":[],"C":[]},
-    {"I":1,"N":"A","A":[2,4,5],"D":21,"M":"$1 * $2 / $3","E":[],"P":[],"C":[]},
-    {"I":6,"N":"rounder","A":[1],"E":[],"R":2,"P":[],"C":[]},
-    {"I":0,"N":"ROOT","A":[6],"M":"$1","E":[],"P":[],"C":[]}
-  ]
+  "N": [
+    {"A": [], "B": [], "C": [], "E": [], "I": 4, "N": "D", "P": ["v"], "V": []},
+    {"A": [4], "B": [], "C": [], "D": 3.456, "E": [[10, 0.1], [3, -5]], "I": 5, "N": "E", "P": [], "V": []},
+    {"A": [4], "B": [], "C": ["$1", "<", 100, "ab"], "E": [], "I": 3, "N": "C", "P": [], "V": []},
+    {"A": [3, 5], "B": [], "C": [], "E": [], "I": 2, "M": "$1 + $2", "N": "B", "P": [], "V": []},
+    {"A": [2, 4, 5], "B": [], "C": [], "D": 21, "E": [], "I": 1, "M": "$1 * $2 / $3", "N": "A", "P": [], "V": []},
+    {"A": [1], "B": [], "C": [], "E": [], "I": 6, "N": "rounder", "P": [], "R": 2, "V": []},
+    {"A": [6], "B": [], "C": [], "E": [], "I": 0, "M": "$1", "N": "ROOT", "P": [], "V": []}]
 }
 ```
 which can be read back into a new graph...
 ```javascript
-const g2 = new DAG(); // A new DAG
-g2.read(json);        // Configure it by reading json
+
+g2 = DAG.read(json)   // A static method to create a DAG from an object;
 g2.solve({v:10});     // 1010
 g2 === g;             // False
+
 ```
 

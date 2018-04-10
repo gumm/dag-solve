@@ -532,6 +532,15 @@ export default class Dag {
     return this.getSolver(true)(opt_d);
   }
 
+  /**
+   * Format the debug output
+   * @param {Map<*, *>} map
+   * @return {Map<*, *>}
+   */
+  debugFormatter(map) {
+    return map.set('topoNames', this.topoNames)
+  }
+
 
   /**
    * @param {boolean=} debug
@@ -550,7 +559,7 @@ export default class Dag {
     return data => {
       sMap.set('data', data);
       const r = cleanNodes.reduce((p, n) => n.solve(p), sMap);
-      return debug ? r : r.get(rootId);
+      return debug ? this.debugFormatter(r) : r.get(rootId);
     };
   }
 
@@ -569,7 +578,7 @@ export default class Dag {
 
   /**
    * @param {string} json A valid DAG Json String.
-   * @return {Dag|undefined}
+   * @return {!Dag|undefined}
    */
   static read(json) {
     // Read the string
