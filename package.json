@@ -1,11 +1,14 @@
 {
   "name": "dag-solve",
-  "version": "3.0.2",
+  "version": "3.1.2",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "main.js",
   "scripts": {
-    "compile": "build/compile.sh `pwd`",
-    "build": "npx rollup -c && npm run compile",
+    "clean": "`rm dist/_temp.js`",
+    "compile_dev": "build/compile.sh `pwd` dev",
+    "compile_es5": "build/compile.sh `pwd` es5",
+    "compile_es6": "build/compile.sh `pwd` es6",
+    "build": "npx rollup -c && npm run compile_es5 && npm run compile_es6 && npm run clean",
     "test": "mocha -r esm --recursive ./test/"
   },
   "repository": {

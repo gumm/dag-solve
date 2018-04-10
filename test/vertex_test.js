@@ -1,6 +1,6 @@
 const be = require('be-sert');
 const assert = require('assert');
-import Node from '../src/vertex.mjs';
+import Vertex from '../src/vertex.mjs';
 import DAG from '../src/dag.mjs';
 
 describe('Nodes can do math.', () => {
@@ -518,7 +518,7 @@ describe('Nodes can be dumped.', () => {
     assert.deepStrictEqual(A.dump(), dumpedNode);
   });
   it('A dumped node object can be used when creating a new node', () => {
-    const B = new Node(10, 'blah', A.dump());
+    const B = new Vertex(10, 'blah', A.dump());
     assert.strictEqual(B.id, A.id);
     assert.strictEqual(B.name, A.name);
     assert.strictEqual(B.fallback, A.fallback);

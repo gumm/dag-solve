@@ -423,7 +423,7 @@ describe('A DAG can be serialized and de-serialized', () => {
   g.units = '°kelvin';
   g.ref = 1234;
 
-  const g2 = new DAG();
+  let g2;
   let s;
 
   it('it can be dumped to a JSON string.', () => {
@@ -438,7 +438,7 @@ describe('A DAG can be serialized and de-serialized', () => {
 
   it('it can be recreated from the JSON', () => {
     // Create a 2nd DAG, and read the string in.
-    g2.read(s);
+    g2 = DAG.read(s);
   });
 
   it('The 2 DAGs should solve to the same thing.', () => {

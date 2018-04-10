@@ -2,11 +2,29 @@ import {alwaysUndef, isDef, isNumber, pRound, toLowerCase,} from '../node_module
 import {betweenFunc, comparatorFunc, dataPathFunc, enumFunc, enumSet, enumUnSet, eventCodeFunc, isRefString, mathFunc, roundFunc} from './utils.mjs';
 
 
-export default class Node {
+/**
+ * @typedef {{
+  A: (!Array<number>),
+  B: !Array<(number|string)>,
+  C: !Array<(number|string)>,
+  D: (*|undefined),
+  E: !Array<!Array<*>>,
+  I: number,
+  M: (number|string|undefined),
+  N: (string|undefined),
+  P: !Array<string|number|null>,
+  R: (number|undefined),
+  V: !Array<string|number>
+}}
+ */
+let dumpType;
+
+
+export default class Vertex {
   /**
    * @param {number} id
    * @param {string|undefined} name
-   * @param {Object|undefined} obj
+   * @param {!dumpType|undefined} obj
    */
   constructor(id, name, obj = undefined) {
     /**
@@ -34,7 +52,7 @@ export default class Node {
     this._math = undefined;
 
     /**
-     * @type {Array<Array<*>>}
+     * @type {!Array<!Array<*>>}
      * @private
      */
     this._enum = [];
@@ -58,10 +76,10 @@ export default class Node {
     this._round = undefined;
 
     /**
-     * @type {!Array<string|number>|undefined|null}
+     * @type {!Array<string|number|null>}
      * @private
      */
-    this._path = undefined;
+    this._path = [];
 
     /**
      * @type {!Array<string|number>}
@@ -79,13 +97,13 @@ export default class Node {
      * A flag indicating that there is a problem, difficulty, or complication
      * and that this node will not be able to perform a solve. When set to null,
      * it means there are no problems, and the node will be able to solve. .
-     * @type {string|undefined}
+     * @type {string|undefined|null}
      * @private
      */
     this._nodus = 'Not init';
 
     /**
-     * @type {function(...*): (undefined|*)}
+     * @type {!Function}
      * @private
      */
     this._func = alwaysUndef;
@@ -98,7 +116,12 @@ export default class Node {
 
       this.setFallback(obj.D);
       this.setMath(obj.M);
-      obj.E.forEach(e => this.addEnum(...e));
+      obj.E.forEach(e => {
+        if (e) {
+          e = /** @type {!Array} */(e);
+          this.addEnum(...e)
+        }
+      });
       this.setRound(obj.R);
       this.setPath(...obj.P);
       this.setComparator(...obj.C);
@@ -109,29 +132,20 @@ export default class Node {
 
   //------------------------------------------------------------------[ Save ]--
   /**
-   * @returns {{
-   *    I: number,
-   *    N: string,
-   *    A: Array<number>,
-   *    D: (*|undefined),
-   *    M: (string|number|undefined),
-   *    E: (Array<Array<*>>|undefined),
-   *    R: (number|undefined),
-   *    F: (Array<string|number|undefined>|undefined)
-   *      }}
+   * @returns {!dumpType}
    */
   dump() {
     return {
-      I: this.id,
-      N: this.name,
       A: this._args,
-      D: this._fallback,
-      M: this._math,
-      E: this._enum,
-      R: this._round,
-      P: this._path,
-      C: this._comparator,
       B: this._between,
+      C: this._comparator,
+      D: this._fallback,
+      E: this._enum,
+      I: this.id,
+      M: this._math,
+      N: this.name,
+      P: this._path,
+      R: this._round,
       V: this._evCode
     };
   }
@@ -169,14 +183,14 @@ export default class Node {
   }
 
   /**
-   * @returns {string}
+   * @returns {string|undefined}
    */
   get name() {
     return this._name;
   }
 
   /**
-   * @param {string} n
+   * @param {string|undefined} n
    */
   set name(n) {
     this._name = n;
@@ -185,7 +199,7 @@ export default class Node {
   // -----------------------------------------------------------------[ Args ]--
   /**
    * Add a argument to the node.
-   * @param {!Node} n
+   * @param {!Vertex} n
    */
   addArg(n) {
     this._args.push(n._id);
@@ -195,7 +209,7 @@ export default class Node {
 
   /**
    * Remove an argument from the node.
-   * @param {!Node} n
+   * @param {!Vertex} n
    */
   delArg(n) {
     this._args = this._args.filter(e => e !== n._id);
@@ -208,6 +222,15 @@ export default class Node {
    */
   get args() {
     return this._args;
+  }
+
+  /**
+   * @param {!Array<number>} arr
+   */
+  setAllArgs(arr) {
+    if (Array.isArray(arr) && arr.every(isNumber)) {
+      this._args = arr;
+    }
   }
 
   // -------------------------------------------------------------[ Fallback ]--
@@ -230,7 +253,7 @@ export default class Node {
   /**
    * @param {number} n
    * @param {string=} opt_access
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setEvCode(n, opt_access) {
     if (isDef(n)) {
@@ -255,11 +278,11 @@ export default class Node {
 
   // -----------------------------------------------------------------[ Path ]--
   /**
-   * @param a
-   * @returns {Node}
+   * @param {...(string|number|null|undefined)} a
+   * @returns {Vertex}
    */
   setPath(...a) {
-    if ([...a].length) {
+    if ([...a].length && [...a].every(isDef)) {
       this._clearAll();
       this._path = [...a];
       }
@@ -268,7 +291,7 @@ export default class Node {
   }
 
   /**
-   * @returns {Array<string|number>}
+   * @returns {Array<string|number|null>}
    */
   get path() {
     return this._path;
@@ -277,7 +300,7 @@ export default class Node {
   // -----------------------------------------------------------------[ Math ]--
   /**
    * @param {string|number|undefined} s
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setMath(s) {
     if (isDef(s)) {
@@ -297,18 +320,21 @@ export default class Node {
 
   // -------------------------------------------------------------[ Rounding ]--
   /**
-   * @param {number} int
-   * @returns {Node}
+   * @param {number|undefined} int
+   * @returns {!Vertex}
    */
   setRound(int) {
     if (isNumber(int)) {
       this._clearAll();
-      this._round = pRound(0)(int);
+      this._round = pRound(0)(/** @type {number} */(int));
       }
 
     return this;
   };
 
+  /**
+   * @return {number|undefined}
+   */
   get round() {
     return this._round;
   }
@@ -335,7 +361,7 @@ export default class Node {
    *                  f(5) == 5       <- Clamped Here
    *                  f(5.0001) == 5  <- Clamped Here
    *                  f(100) == 5     <- Clamped Here
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setComparator(v1, cmp, v2, outputFormat) {
     let pass = true;
@@ -383,7 +409,7 @@ export default class Node {
    *                  f(4) == 4
    *                  f(5) == 5
    *                  f(5.0001) == 5  <- Clamped Here
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setBetween(v, s1, s2, outputFormat) {
     let isClean = true;
@@ -408,7 +434,7 @@ export default class Node {
   /**
    * @param {*} k
    * @param {*} v
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   addEnum(k, v) {
     if (k === undefined) {
@@ -421,7 +447,7 @@ export default class Node {
 
   /**
    * @param {*} k
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   delEnum(k) {
     this._enum = enumUnSet(this._enum, k);
@@ -439,38 +465,41 @@ export default class Node {
 
   // ----------------------------------------------------------------[ Solve ]--
   clean() {
+    let nf = [this._nodus, this._func];
     if (this.math) {
       // This node does math.
-      [this._nodus, this._func] = mathFunc(this.math, this.args);
+      nf = mathFunc(this.math, this.args);
 
     } else if (this.enum && this.enum.length) {
       // This node does enums
-      [this._nodus, this._func] = enumFunc(this.enum, this.args);
+      nf = enumFunc(this.enum, this.args);
 
     } else if (isDef(this.round)) {
       // This node does rounding
-      [this._nodus, this._func] = roundFunc(this.round, this.args);
+      nf = roundFunc(/** @type {number} */(this.round), this.args);
 
     } else if (this.comparator && this.comparator.length) {
       // This node is a comparator
-      [this._nodus, this._func] = comparatorFunc(this.comparator, this.args);
+      nf = comparatorFunc(this.comparator, this.args);
 
     } else if (this.between && this.between.length) {
       // This node is a between filter
-      [this._nodus, this._func] = betweenFunc(this.between, this.args);
+      nf = betweenFunc(this.between, this.args);
 
     } else if (this.path && this.path.length) {
       // This node can access data via a path into a data structure.
-      [this._nodus, this._func] = dataPathFunc(this.path, this.args);
+      nf = dataPathFunc(this.path, this.args);
 
     } else if (this.evCode && this.evCode.length === 2) {
       // This node can access event codes.
-      [this._nodus, this._func] = eventCodeFunc(this.evCode, this.args);
+      nf = eventCodeFunc(this.evCode, this.args);
 
     } else if (this._fallback) {
       // This does nothing but return a fallback value
-      [this._nodus, this._func] = [null, () => this._fallback];
-      }
+      nf = [null, () => this._fallback];
+    }
+
+    [this._nodus, this._func] = nf;
 
     return this;
   }
@@ -498,5 +527,13 @@ export default class Node {
       sMap.set(`err_${this._id}`, !this._nodus);
       return sMap;
     }
+  }
+
+  /**
+   * @param {!Vertex} n
+   * @returns {function(!Array<!Vertex>, !Array<!Vertex>): !Array<!Vertex>}
+   */
+  static isIn(n) {
+    return (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
   }
 }

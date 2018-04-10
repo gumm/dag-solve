@@ -1,25 +1,25 @@
 import {alwaysFalse, alwaysUndef, isString, pathOr, pRound, sameArr} from '../node_modules/badu/module/badu.mjs';
 
+
+/**
+ * @typedef {!Array<null|boolean|!Function>}
+ */
+let funcGetterType;
+
 const argRefSymbol = 'X';
 
 /**
  * @param {*} m
  * @returns {boolean}
  */
-const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
+const isRefString = m => isString(m) && !Number.isNaN(
+    getRefIndex(/** @type {string} */(m)));
 
 /**
  * @param {string} m Something like $1
  * @returns {number}
  */
 const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
-
-
-/**
- * @param {!Node} n
- * @returns {function(!Array<!Node>, !Array<!Node>): !Array<!Node>}
- */
-const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
 
 
 /**
@@ -42,11 +42,6 @@ const enumSet = (arr, k, v) => [...new Map(arr).set(k, v).entries()];
  */
 const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
 
-/**
- * @param {!Node} n
- * @returns {number}
- */
-const grabId = n => n._id;
 
 /**
  * A generator function to produce consecutive ids, starting from
@@ -76,27 +71,42 @@ const safeJsonParse = json => {
   return parsed;
 };
 
+// noinspection EqualityComparisonWithCoercionJS
+/**
+ * @type {Map<string, function(number, number): boolean>}
+ */
+const comparatorMap  = new Map([
+  ['!=', (v1, v2) => v1 != v2],
+  ['==', (v1, v2) => v1 == v2],
+  ['!==', (v1, v2) => v1 !== v2],
+  ['===', (v1, v2) => v1 === v2],
+  ['<=', (v1, v2) => v1 <= v2],
+  ['>=', (v1, v2) => v1 >= v2],
+  ['<', (v1, v2) => v1 < v2],
+  ['>', (v1, v2) => v1 > v2]
+]);
+
 /**
  * Given a predicate and a target value. return a function that takes a
  * value to test against the predicate.
  * Junk input always results in a failing test.
  * @param {string} c Comparator
- * @returns {!function(number): boolean}
+ * @returns {!function(number, number): boolean}
  */
 const makeComparator = (c) => {
-  // noinspection EqualityComparisonWithCoercionJS
-  const m = {
-    '!=': (v1, v2) => v1 != v2,
-    '==': (v1, v2) => v1 == v2,
-    '!==': (v1, v2) => v1 !== v2,
-    '===': (v1, v2) => v1 === v2,
-    '<=': (v1, v2) => v1 <= v2,
-    '>=': (v1, v2) => v1 >= v2,
-    '<': (v1, v2) => v1 < v2,
-    '>': (v1, v2) => v1 > v2
-  };
-  return m[c] || alwaysFalse;
+  return comparatorMap.get(c) || alwaysFalse;
 };
+
+// noinspection JSUnusedLocalSymbols
+/**
+ * @type {Map<string, function(boolean, number, number): *>}
+ */
+const outputMap = new Map([
+  ['vu', (b, v1, v2) => b ? v1 : undefined],
+  ['10', (b, v1, v2) => b ? 1 : 0],
+  ['tf', (b, v1, v2) => b],
+  ['ab', (b, v1, v2) => b ? v1 : v2]
+]);
 
 /**
  * @param {string} rv Return value type. Can be:
@@ -105,17 +115,10 @@ const makeComparator = (c) => {
  *    'tf': Pass with true, else fail.s
  *    'ab': First value if it passes else second value
  *    Junk input always results in a failing test.
- * @returns {(function(boolean, number, number): (undefined|boolean|number))}
+ * @returns {(function(boolean, number, number): *)}
  */
 const genOutput = rv => {
-  // noinspection JSUnusedLocalSymbols
-  const m = {
-    'vu': (b, v1, v2) => b ? v1 : undefined,
-    '10': (b, v1, v2) => b ? 1 : 0,
-    'tf': (b, v1, v2) => b,
-    'ab': (b, v1, v2) => b ? v1 : v2
-  };
-  return m[rv] || alwaysUndef;
+  return outputMap.get(rv) || alwaysUndef;
 };
 
 /**
@@ -141,7 +144,7 @@ const int = e => parseInt(e, 10);
 
 /**
  * @param {(string|number)} fn
- * @returns {Array<string|!Function>}
+ * @returns {!Array<string|!Function>}
  */
 const funcMaker = fn => {
   try {
@@ -167,8 +170,8 @@ const funcMaker = fn => {
  *    This means that when the arithmetic is calculated, we only need to pass in
  *    the variable "X" which should be an array of values, and we will be able
  *    to solve the math.
- * @param {!Array<!Node>} a
- * @returns {Array<boolean|!Function>}
+ * @param {!Array<number>} a
+ * @returns {funcGetterType}
  */
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
@@ -176,7 +179,7 @@ const mathFunc = (m, a) => {
   if (isString(m)) {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}.get(${c})`),
-        mathCleaner(m));
+        mathCleaner(/** @type {string} */ (m)));
     if (!s.includes('$')) {
       [err, f] = funcMaker(s);
     }
@@ -188,15 +191,15 @@ const mathFunc = (m, a) => {
 
 
 /**
- * @param {Array<Array<*>>} e The enum array.
+ * @param {!Array<!Array<*>>} e The enum array.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const enumFunc = (e, a) => {
 
   const r = e.map(([k, v]) => {
     if (isString(v) && isRefString(v)) {
-      const i = getRefIndex(v);
+      const i = getRefIndex(/** @type {string} */(v));
       return [k, sMap => sMap.get(a[i])];
     } else {
       return [k, () => v];
@@ -216,17 +219,22 @@ const enumFunc = (e, a) => {
 /**
  * @param {number} r The number of digits you want to round to.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const roundFunc = (r, a) => {
   const round = pRound(r);
   return [null, sMap => round(sMap.get(a[0]))]
 };
 
+/**
+ * @param {*} v
+ * @param {!Array<*>} a
+ * @return {(function(): *)|(function(*): *)}
+ */
 const compFuncHelper = (v, a) => {
   let f;
   if (isString(v)) {
-    const i = getRefIndex(v);
+    const i = getRefIndex(/** @type {string} */(v));
     f = sMap => sMap.get(a[i]);
   } else {
     f = () => v
@@ -237,15 +245,14 @@ const compFuncHelper = (v, a) => {
 /**
  * @param {!Array<(number|string)>} c The comparison description.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const comparatorFunc = (c, a) => {
-  let [v1, cmp, v2, outputFormat] = c;
-
+  const [v1, cmp, v2, outputFormat] = c;
   const r1 = compFuncHelper(v1, a);
   const r2 = compFuncHelper(v2, a);
-  const t = makeComparator(cmp);
-  const outF = genOutput(outputFormat);
+  const t = makeComparator(/** @type {string} */(cmp));
+  const outF = genOutput(/** @type {string} */(outputFormat));
 
   return [
     null,
@@ -260,14 +267,14 @@ const comparatorFunc = (c, a) => {
 /**
  * @param {!Array<(string|number)>} b The comparison description.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const betweenFunc = (b, a) => {
   let [v, s1, s2, outputFormat] = b;
   const val = compFuncHelper(v, a);
   const sa = compFuncHelper(s1, a);
   const sb = compFuncHelper(s2, a);
-  const outF = genOutput(outputFormat);
+  const outF = genOutput(/** @type {string} */(outputFormat));
 
   return [
     null,
@@ -288,7 +295,7 @@ const betweenFunc = (b, a) => {
 /**
  * @param {!Array<(string|number)>} p The path into the data structure.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const dataPathFunc = (p, a) => {
   let f;
@@ -313,11 +320,12 @@ const dataPathFunc = (p, a) => {
  *      }
  *    }
  * }
- * @param {number} code
- * @param {string} access Valid access keys are:
+ * @param {!Array<number, string>} $0 A two element array.
+ *  {number} code
+ *  {string} access Valid access keys are:
  *    'data', 'description' or 'code'
  * @param {!Array<number>} a
- * @returns {Array<null|boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const eventCodeFunc = ([code, access], a) => {
   const p = ['_ev', code.toString(), access];
@@ -337,13 +345,11 @@ export {
   dataPathFunc,
   eventCodeFunc,
   idGen,
-  isIn,
-  grabId,
   safeJsonParse,
   mathCleaner,
   funcMaker,
-  isRefString,
   getRefIndex,
+  isRefString,
   makeComparator,
   genOutput
 };

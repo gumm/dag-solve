@@ -116,20 +116,14 @@ const argRefSymbol = 'X';
  * @param {*} m
  * @returns {boolean}
  */
-const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
+const isRefString = m => isString(m) && !Number.isNaN(
+    getRefIndex(/** @type {string} */(m)));
 
 /**
  * @param {string} m Something like $1
  * @returns {number}
  */
 const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
-
-
-/**
- * @param {!Node} n
- * @returns {function(!Array<!Node>, !Array<!Node>): !Array<!Node>}
- */
-const isIn = n => (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
 
 
 /**
@@ -152,11 +146,6 @@ const enumSet = (arr, k, v) => [...new Map(arr).set(k, v).entries()];
  */
 const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
 
-/**
- * @param {!Node} n
- * @returns {number}
- */
-const grabId = n => n._id;
 
 /**
  * A generator function to produce consecutive ids, starting from
@@ -186,27 +175,42 @@ const safeJsonParse = json => {
   return parsed;
 };
 
+// noinspection EqualityComparisonWithCoercionJS
+/**
+ * @type {Map<string, function(number, number): boolean>}
+ */
+const comparatorMap  = new Map([
+  ['!=', (v1, v2) => v1 != v2],
+  ['==', (v1, v2) => v1 == v2],
+  ['!==', (v1, v2) => v1 !== v2],
+  ['===', (v1, v2) => v1 === v2],
+  ['<=', (v1, v2) => v1 <= v2],
+  ['>=', (v1, v2) => v1 >= v2],
+  ['<', (v1, v2) => v1 < v2],
+  ['>', (v1, v2) => v1 > v2]
+]);
+
 /**
  * Given a predicate and a target value. return a function that takes a
  * value to test against the predicate.
  * Junk input always results in a failing test.
  * @param {string} c Comparator
- * @returns {!function(number): boolean}
+ * @returns {!function(number, number): boolean}
  */
 const makeComparator = (c) => {
-  // noinspection EqualityComparisonWithCoercionJS
-  const m = {
-    '!=': (v1, v2) => v1 != v2,
-    '==': (v1, v2) => v1 == v2,
-    '!==': (v1, v2) => v1 !== v2,
-    '===': (v1, v2) => v1 === v2,
-    '<=': (v1, v2) => v1 <= v2,
-    '>=': (v1, v2) => v1 >= v2,
-    '<': (v1, v2) => v1 < v2,
-    '>': (v1, v2) => v1 > v2
-  };
-  return m[c] || alwaysFalse;
+  return comparatorMap.get(c) || alwaysFalse;
 };
+
+// noinspection JSUnusedLocalSymbols
+/**
+ * @type {Map<string, function(boolean, number, number): *>}
+ */
+const outputMap = new Map([
+  ['vu', (b, v1, v2) => b ? v1 : undefined],
+  ['10', (b, v1, v2) => b ? 1 : 0],
+  ['tf', (b, v1, v2) => b],
+  ['ab', (b, v1, v2) => b ? v1 : v2]
+]);
 
 /**
  * @param {string} rv Return value type. Can be:
@@ -215,17 +219,10 @@ const makeComparator = (c) => {
  *    'tf': Pass with true, else fail.s
  *    'ab': First value if it passes else second value
  *    Junk input always results in a failing test.
- * @returns {(function(boolean, number, number): (undefined|boolean|number))}
+ * @returns {(function(boolean, number, number): *)}
  */
 const genOutput = rv => {
-  // noinspection JSUnusedLocalSymbols
-  const m = {
-    'vu': (b, v1, v2) => b ? v1 : undefined,
-    '10': (b, v1, v2) => b ? 1 : 0,
-    'tf': (b, v1, v2) => b,
-    'ab': (b, v1, v2) => b ? v1 : v2
-  };
-  return m[rv] || alwaysUndef;
+  return outputMap.get(rv) || alwaysUndef;
 };
 
 /**
@@ -248,7 +245,7 @@ const mathCleaner = s => {
 
 /**
  * @param {(string|number)} fn
- * @returns {Array<string|!Function>}
+ * @returns {!Array<string|!Function>}
  */
 const funcMaker = fn => {
   try {
@@ -274,8 +271,8 @@ const funcMaker = fn => {
  *    This means that when the arithmetic is calculated, we only need to pass in
  *    the variable "X" which should be an array of values, and we will be able
  *    to solve the math.
- * @param {!Array<!Node>} a
- * @returns {Array<boolean|!Function>}
+ * @param {!Array<number>} a
+ * @returns {funcGetterType}
  */
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
@@ -283,7 +280,7 @@ const mathFunc = (m, a) => {
   if (isString(m)) {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}.get(${c})`),
-        mathCleaner(m));
+        mathCleaner(/** @type {string} */ (m)));
     if (!s.includes('$')) {
       [err, f] = funcMaker(s);
     }
@@ -295,15 +292,15 @@ const mathFunc = (m, a) => {
 
 
 /**
- * @param {Array<Array<*>>} e The enum array.
+ * @param {!Array<!Array<*>>} e The enum array.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const enumFunc = (e, a) => {
 
   const r = e.map(([k, v]) => {
     if (isString(v) && isRefString(v)) {
-      const i = getRefIndex(v);
+      const i = getRefIndex(/** @type {string} */(v));
       return [k, sMap => sMap.get(a[i])];
     } else {
       return [k, () => v];
@@ -323,17 +320,22 @@ const enumFunc = (e, a) => {
 /**
  * @param {number} r The number of digits you want to round to.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const roundFunc = (r, a) => {
   const round = pRound(r);
   return [null, sMap => round(sMap.get(a[0]))]
 };
 
+/**
+ * @param {*} v
+ * @param {!Array<*>} a
+ * @return {(function(): *)|(function(*): *)}
+ */
 const compFuncHelper = (v, a) => {
   let f;
   if (isString(v)) {
-    const i = getRefIndex(v);
+    const i = getRefIndex(/** @type {string} */(v));
     f = sMap => sMap.get(a[i]);
   } else {
     f = () => v;
@@ -344,15 +346,14 @@ const compFuncHelper = (v, a) => {
 /**
  * @param {!Array<(number|string)>} c The comparison description.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const comparatorFunc = (c, a) => {
-  let [v1, cmp, v2, outputFormat] = c;
-
+  const [v1, cmp, v2, outputFormat] = c;
   const r1 = compFuncHelper(v1, a);
   const r2 = compFuncHelper(v2, a);
-  const t = makeComparator(cmp);
-  const outF = genOutput(outputFormat);
+  const t = makeComparator(/** @type {string} */(cmp));
+  const outF = genOutput(/** @type {string} */(outputFormat));
 
   return [
     null,
@@ -367,14 +368,14 @@ const comparatorFunc = (c, a) => {
 /**
  * @param {!Array<(string|number)>} b The comparison description.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const betweenFunc = (b, a) => {
   let [v, s1, s2, outputFormat] = b;
   const val = compFuncHelper(v, a);
   const sa = compFuncHelper(s1, a);
   const sb = compFuncHelper(s2, a);
-  const outF = genOutput(outputFormat);
+  const outF = genOutput(/** @type {string} */(outputFormat));
 
   return [
     null,
@@ -395,7 +396,7 @@ const betweenFunc = (b, a) => {
 /**
  * @param {!Array<(string|number)>} p The path into the data structure.
  * @param {!Array<number>} a
- * @returns {Array<boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const dataPathFunc = (p, a) => {
   let f;
@@ -420,11 +421,12 @@ const dataPathFunc = (p, a) => {
  *      }
  *    }
  * }
- * @param {number} code
- * @param {string} access Valid access keys are:
+ * @param {!Array<number, string>} $0 A two element array.
+ *  {number} code
+ *  {string} access Valid access keys are:
  *    'data', 'description' or 'code'
  * @param {!Array<number>} a
- * @returns {Array<null|boolean|!Function>}
+ * @returns {funcGetterType}
  */
 const eventCodeFunc = ([code, access], a) => {
   const p = ['_ev', code.toString(), access];
@@ -432,11 +434,11 @@ const eventCodeFunc = ([code, access], a) => {
   return [null, f];
 };
 
-class Node {
+class Vertex {
   /**
    * @param {number} id
    * @param {string|undefined} name
-   * @param {Object|undefined} obj
+   * @param {!dumpType|undefined} obj
    */
   constructor(id, name, obj = undefined) {
     /**
@@ -464,7 +466,7 @@ class Node {
     this._math = undefined;
 
     /**
-     * @type {Array<Array<*>>}
+     * @type {!Array<!Array<*>>}
      * @private
      */
     this._enum = [];
@@ -488,10 +490,10 @@ class Node {
     this._round = undefined;
 
     /**
-     * @type {!Array<string|number>|undefined|null}
+     * @type {!Array<string|number|null>}
      * @private
      */
-    this._path = undefined;
+    this._path = [];
 
     /**
      * @type {!Array<string|number>}
@@ -509,13 +511,13 @@ class Node {
      * A flag indicating that there is a problem, difficulty, or complication
      * and that this node will not be able to perform a solve. When set to null,
      * it means there are no problems, and the node will be able to solve. .
-     * @type {string|undefined}
+     * @type {string|undefined|null}
      * @private
      */
     this._nodus = 'Not init';
 
     /**
-     * @type {function(...*): (undefined|*)}
+     * @type {!Function}
      * @private
      */
     this._func = alwaysUndef;
@@ -528,7 +530,12 @@ class Node {
 
       this.setFallback(obj.D);
       this.setMath(obj.M);
-      obj.E.forEach(e => this.addEnum(...e));
+      obj.E.forEach(e => {
+        if (e) {
+          e = /** @type {!Array} */(e);
+          this.addEnum(...e);
+        }
+      });
       this.setRound(obj.R);
       this.setPath(...obj.P);
       this.setComparator(...obj.C);
@@ -539,29 +546,20 @@ class Node {
 
   //------------------------------------------------------------------[ Save ]--
   /**
-   * @returns {{
-   *    I: number,
-   *    N: string,
-   *    A: Array<number>,
-   *    D: (*|undefined),
-   *    M: (string|number|undefined),
-   *    E: (Array<Array<*>>|undefined),
-   *    R: (number|undefined),
-   *    F: (Array<string|number|undefined>|undefined)
-   *      }}
+   * @returns {!dumpType}
    */
   dump() {
     return {
-      I: this.id,
-      N: this.name,
       A: this._args,
-      D: this._fallback,
-      M: this._math,
-      E: this._enum,
-      R: this._round,
-      P: this._path,
-      C: this._comparator,
       B: this._between,
+      C: this._comparator,
+      D: this._fallback,
+      E: this._enum,
+      I: this.id,
+      M: this._math,
+      N: this.name,
+      P: this._path,
+      R: this._round,
       V: this._evCode
     };
   }
@@ -599,14 +597,14 @@ class Node {
   }
 
   /**
-   * @returns {string}
+   * @returns {string|undefined}
    */
   get name() {
     return this._name;
   }
 
   /**
-   * @param {string} n
+   * @param {string|undefined} n
    */
   set name(n) {
     this._name = n;
@@ -615,7 +613,7 @@ class Node {
   // -----------------------------------------------------------------[ Args ]--
   /**
    * Add a argument to the node.
-   * @param {!Node} n
+   * @param {!Vertex} n
    */
   addArg(n) {
     this._args.push(n._id);
@@ -625,7 +623,7 @@ class Node {
 
   /**
    * Remove an argument from the node.
-   * @param {!Node} n
+   * @param {!Vertex} n
    */
   delArg(n) {
     this._args = this._args.filter(e => e !== n._id);
@@ -638,6 +636,15 @@ class Node {
    */
   get args() {
     return this._args;
+  }
+
+  /**
+   * @param {!Array<number>} arr
+   */
+  setAllArgs(arr) {
+    if (Array.isArray(arr) && arr.every(isNumber)) {
+      this._args = arr;
+    }
   }
 
   // -------------------------------------------------------------[ Fallback ]--
@@ -660,7 +667,7 @@ class Node {
   /**
    * @param {number} n
    * @param {string=} opt_access
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setEvCode(n, opt_access) {
     if (isDef(n)) {
@@ -685,11 +692,11 @@ class Node {
 
   // -----------------------------------------------------------------[ Path ]--
   /**
-   * @param a
-   * @returns {Node}
+   * @param {...(string|number|null|undefined)} a
+   * @returns {Vertex}
    */
   setPath(...a) {
-    if ([...a].length) {
+    if ([...a].length && [...a].every(isDef)) {
       this._clearAll();
       this._path = [...a];
       }
@@ -698,7 +705,7 @@ class Node {
   }
 
   /**
-   * @returns {Array<string|number>}
+   * @returns {Array<string|number|null>}
    */
   get path() {
     return this._path;
@@ -707,7 +714,7 @@ class Node {
   // -----------------------------------------------------------------[ Math ]--
   /**
    * @param {string|number|undefined} s
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setMath(s) {
     if (isDef(s)) {
@@ -727,18 +734,21 @@ class Node {
 
   // -------------------------------------------------------------[ Rounding ]--
   /**
-   * @param {number} int
-   * @returns {Node}
+   * @param {number|undefined} int
+   * @returns {!Vertex}
    */
   setRound(int) {
     if (isNumber(int)) {
       this._clearAll();
-      this._round = pRound(0)(int);
+      this._round = pRound(0)(/** @type {number} */(int));
       }
 
     return this;
   };
 
+  /**
+   * @return {number|undefined}
+   */
   get round() {
     return this._round;
   }
@@ -765,7 +775,7 @@ class Node {
    *                  f(5) == 5       <- Clamped Here
    *                  f(5.0001) == 5  <- Clamped Here
    *                  f(100) == 5     <- Clamped Here
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setComparator(v1, cmp, v2, outputFormat) {
     let pass = true;
@@ -813,7 +823,7 @@ class Node {
    *                  f(4) == 4
    *                  f(5) == 5
    *                  f(5.0001) == 5  <- Clamped Here
-   * @returns {Node}
+   * @returns {Vertex}
    */
   setBetween(v, s1, s2, outputFormat) {
     let isClean = true;
@@ -838,7 +848,7 @@ class Node {
   /**
    * @param {*} k
    * @param {*} v
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   addEnum(k, v) {
     if (k === undefined) {
@@ -851,7 +861,7 @@ class Node {
 
   /**
    * @param {*} k
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   delEnum(k) {
     this._enum = enumUnSet(this._enum, k);
@@ -869,38 +879,41 @@ class Node {
 
   // ----------------------------------------------------------------[ Solve ]--
   clean() {
+    let nf = [this._nodus, this._func];
     if (this.math) {
       // This node does math.
-      [this._nodus, this._func] = mathFunc(this.math, this.args);
+      nf = mathFunc(this.math, this.args);
 
     } else if (this.enum && this.enum.length) {
       // This node does enums
-      [this._nodus, this._func] = enumFunc(this.enum, this.args);
+      nf = enumFunc(this.enum, this.args);
 
     } else if (isDef(this.round)) {
       // This node does rounding
-      [this._nodus, this._func] = roundFunc(this.round, this.args);
+      nf = roundFunc(/** @type {number} */(this.round), this.args);
 
     } else if (this.comparator && this.comparator.length) {
       // This node is a comparator
-      [this._nodus, this._func] = comparatorFunc(this.comparator, this.args);
+      nf = comparatorFunc(this.comparator, this.args);
 
     } else if (this.between && this.between.length) {
       // This node is a between filter
-      [this._nodus, this._func] = betweenFunc(this.between, this.args);
+      nf = betweenFunc(this.between, this.args);
 
     } else if (this.path && this.path.length) {
       // This node can access data via a path into a data structure.
-      [this._nodus, this._func] = dataPathFunc(this.path, this.args);
+      nf = dataPathFunc(this.path, this.args);
 
     } else if (this.evCode && this.evCode.length === 2) {
       // This node can access event codes.
-      [this._nodus, this._func] = eventCodeFunc(this.evCode, this.args);
+      nf = eventCodeFunc(this.evCode, this.args);
 
     } else if (this._fallback) {
       // This does nothing but return a fallback value
-      [this._nodus, this._func] = [null, () => this._fallback];
-      }
+      nf = [null, () => this._fallback];
+    }
+
+    [this._nodus, this._func] = nf;
 
     return this;
   }
@@ -929,9 +942,24 @@ class Node {
       return sMap;
     }
   }
+
+  /**
+   * @param {!Vertex} n
+   * @returns {function(!Array<!Vertex>, !Array<!Vertex>): !Array<!Vertex>}
+   */
+  static isIn(n) {
+    return (p, [k, s]) => s.has(n) ? (p.push(k) && p) : p;
+  }
 }
 
 //---------------------------------------------------------------[ DAG Utils ]--
+/**
+ * @param {!Vertex} n
+ * @returns {number}
+ */
+const grabId = n => n.id;
+
+
 /**
  * Given a map of a dag in the form below, return an array of leaf nodes, that
  * is, nodes with 0 in degrees / nodes where no edges point to it.
@@ -945,8 +973,8 @@ class Node {
  *      [ 'D', new Set([]) ]
  *    ]);
  * @returns {{
- *  C: !Map<!Node, number>,
-    Q: !Array<!Node>
+ *  C: !Map<!Vertex, number>,
+    Q: !Array<!Vertex>
  * }}
  */
 const leafNodes = G => {
@@ -956,7 +984,7 @@ const leafNodes = G => {
   // appears as a value. In terms of a DAG, this describes how many edges
   // point to this node.
   /**
-   * @type {!Map<!Node, number>} A map of nodes to the number of times
+   * @type {!Map<!Vertex, number>} A map of nodes to the number of times
    *  that node has an in-edge. Leaf-nodes will have a value of 0
    */
   const C = [...G.keys()].reduce((p, c) => (p.set(c, 0)) || p, new Map());
@@ -964,7 +992,7 @@ const leafNodes = G => {
       arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0)));
 
   /**
-   * @type {!Array<!Node>} A List of nodes without any in degrees
+   * @type {!Array<!Vertex>} A List of nodes without any in degrees
    */
   const Q = [...G.keys()].filter(e => C.get(e) === 0);
   return {C, Q}
@@ -984,7 +1012,7 @@ const leafNodes = G => {
  *      [ 'F', new Set(['C']) ],
  *      [ 'D', new Set([]) ]
  *    ]);
- * @returns {!Array<!Node>}
+ * @returns {!Array<!Vertex>}
  */
 const topoSort = G => {
 
@@ -1036,9 +1064,9 @@ const removeOrphans = G => {
 
 /**
  * @param {!Iterator<number>} gen
- * @returns {function(string):!Node}
+ * @returns {function(string):!Vertex}
  */
-const nodeMaker = gen => n => new Node(gen.next().value, n);
+const nodeMaker = gen => n => new Vertex(gen.next().value, n);
 
 
 class Dag {
@@ -1077,18 +1105,18 @@ class Dag {
 
     /**
      * The container of our DAG
-     * @type {!Map<!Node, !Set<!Node>>}
+     * @type {!Map<!Vertex, !Set<!Vertex>>}
      */
     this.G = new Map();
 
     /**
-     * @type {function(string): !Node}
+     * @type {function(string): !Vertex}
      * @private
      */
     this._nodeMaker = nodeMaker(idGen());
 
     /**
-     * @type {!Node}
+     * @type {!Vertex}
      * @private
      */
     this._rootNode = this.makeNode('ROOT');
@@ -1172,7 +1200,7 @@ class Dag {
   //-----------------------------------------------------------------[ Setup ]--
   /**
    * The single root node.
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   get root() {
     return this._rootNode;
@@ -1181,7 +1209,7 @@ class Dag {
 
   /**
    * The nodes in the order that they were added.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get nodes() {
     return [...this.G.keys()];
@@ -1189,7 +1217,7 @@ class Dag {
 
 
   /**
-   * The graph description in the form of Node -> Set<Node>
+   * The graph description in the form of Vertex -> Set<Vertex>
    * @returns {!Map}
    */
   get graph() {
@@ -1201,7 +1229,7 @@ class Dag {
    * A topological sorted array of node.
    * NOTE: This includes orphans, and orphans *may* be sorted after the root
    * node.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get topo() {
     return topoSort(this.G);
@@ -1211,7 +1239,7 @@ class Dag {
   /**
    * Leafs are nodes without any in-degrees. The partake in the solution.
    * NOTE: The root node *is* considered a leaf if nothing connects to it.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get leafs() {
     return leafNodes(this.G).Q;
@@ -1222,7 +1250,7 @@ class Dag {
    * Orphans are nodes that wont partake in the solution. That is nodes that
    * don't have an out degree.
    * NOTE: The root node is *not* treated as an orphan.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get orphans() {
     const orphans = [];
@@ -1273,7 +1301,7 @@ class Dag {
 
   /**
    * @param {string} name
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   makeNode(name) {
     const n = this._nodeMaker(name);
@@ -1288,8 +1316,8 @@ class Dag {
    * in node maker to algorithm to produce nodes with non contiguous ids.
    * If the given node has a higer ID than any of the existing nodes in the
    * DAG, new nodes created by the DAG will count from this new highest ID.
-   * @param {!Node} n
-   * @returns {(!Node|boolean)}
+   * @param {!Vertex} n
+   * @returns {(!Vertex|boolean)}
    */
   addNode(n) {
     if (this.G.has(n)) {
@@ -1308,7 +1336,7 @@ class Dag {
    * Delete a node. That is completely remove it from the DAG.
    * The node is disconnected from all its connections, and deleted.
    * The root node can not be deleted.
-   * @param {!Node} n
+   * @param {!Vertex} n
    * @returns {boolean}
    */
   delNode(n) {
@@ -1335,8 +1363,8 @@ class Dag {
    *  4) If the nodes are already connected, further attempts are ignored.
    *  5) It the connection will form a cycle, the nodes won't be connected.
    *
-   * @param {!Node} a
-   * @param {!Node} b
+   * @param {!Vertex} a
+   * @param {!Vertex} b
    * @returns {Dag}
    */
   connect(a, b) {
@@ -1369,8 +1397,8 @@ class Dag {
   /**
    * Disconnect node a from node b.
    * That is remove node a as an input to node b.
-   * @param {!Node} a
-   * @param {!Node} b
+   * @param {!Vertex} a
+   * @param {!Vertex} b
    * @returns {Dag}
    */
   disconnect(a, b) {
@@ -1399,19 +1427,19 @@ class Dag {
 
   /**
    * Return an array of all the nodes that connects to the given node.
-   * @param {!Node} n
-   * @returns {!Array<!Node>}
+   * @param {!Vertex} n
+   * @returns {!Array<!Vertex>}
    */
   indegrees(n) {
-    const hasN = isIn(n);
+    const hasN = Vertex.isIn(n);
     return [...this.G.entries()].reduce(hasN, []);
   }
 
 
   /**
    * Return an array of all the nodes that the given node connects to.
-   * @param {!Node} n
-   * @returns {!Array<!Node>}
+   * @param {!Vertex} n
+   * @returns {!Array<!Vertex>}
    */
   outdegrees(n) {
     return [...this.G.get(n)];
@@ -1434,7 +1462,7 @@ class Dag {
    * into the next node's solve function. Nodes are called to be solved in
    * topological order, meaning it is guaranteed that any input a node needs
    * will already have been calculated by a previous node.
-   * @param {Object=} opt_d
+   * @param {!Object=} opt_d
    * @returns {*}
    */
   solve(opt_d) {
@@ -1455,7 +1483,7 @@ class Dag {
 
   /**
    * @param {boolean=} debug
-   * @returns {function(*=): *}
+   * @returns {function((!Object|undefined)): *}
    */
   getSolver(debug = false) {
     const m = removeOrphans(this.getIdG());
@@ -1482,69 +1510,62 @@ class Dag {
   dump() {
     return JSON.stringify({
       M: [this.description, this.units, this.ref],
-      G: [...this.getIdG()].map(([k, s]) => [k, [...s]]),
+      G: [...this.getIdG()].map(([k, s]) => [k, [...s]]), // preserves insert order
       N: this.topo.map(e => e.dump())
     });
   }
 
-
-  // noinspection JSUnusedGlobalSymbols
   /**
    * @param {string} json A valid DAG Json String.
-   * @param {boolean=} allowRollback By default we allow a rollback, but
-   *    the rollback process itself does not.
-   * @returns {Dag}
+   * @return {Dag|undefined}
    */
-  read(json, allowRollback = true) {
+  static read(json) {
     // Read the string
     const j = safeJsonParse(json);
 
     // Store a valid rollback image of the current config.
-    const rollback = this.dump();
-
+    // const rollback = this.dump();
     if (j) {
       try {
-        // Destroy the current config
-        this.G = new Map();
-        this._rootNode = undefined;
-
         // Create a list of true nodes
-        const n = j.N.map(e => new Node(undefined, undefined, e));
+        const n = j.N.map(e => new Vertex(-1, undefined, e));
         const matchId = id => e => e.id === id;
         const findNode = id => n.find(matchId(id));
 
         // Create a map that directly mirrors the original, but with IDs only.
-        const g = new Map(/** @type Array */ (j.G));
-        this._rootNode = undefined;
+        const g = new Map(j.G);
+        const d = new Dag();
+        d.G = new Map();
+
         for (const k of g.keys()) {
-          this.addNode(findNode(k));
+          d.addNode(findNode(k));
         }
-        this._rootNode = this.nodes[0];
+        d._rootNode = d.nodes[0];
+
         for (const [k, arr] of g.entries()) {
           const node = findNode(k);
           arr.forEach(id => {
             const toNode = findNode(id);
-            this.connect(node, toNode);
+            d.connect(node, toNode);
           });
         }
 
         // Make sure that the order of each of the nodes args is the same as the
         // original.
-        this.nodes.forEach(n => {
-          n._args = j.N.find(e => e.I === n.id).A;
+        // this.nodes.forEach(n => {
+        d.nodes.forEach(n => {
+          n.setAllArgs(j.N.find(e => e.I === n.id).A);
         });
 
         // Attend to the human data
-        this.description = j.M ? (j.M[0] || '') : '';
-        this.units = j.M ? (j.M[1] || '') : '';
-        this.ref = j.M ? j.M[2] : null;
+        d.description = j.M ? (j.M[0] || '') : '';
+        d.units = j.M ? (j.M[1] || '') : '';
+        d.ref = j.M ? j.M[2] : null;
 
-
-        return this;
-      } catch (e) {
-        if (allowRollback) {
-          this.read(rollback, false);
-        }
+        return d;
+      }
+      catch (e) {
+        console.log(e);
       }
     }
   }

@@ -1,10 +1,17 @@
 import {isDef, maxInArr, isString,} from '../node_modules/badu/module/badu.mjs';
 
-import {grabId, idGen, isIn, safeJsonParse,} from './utils.mjs';
-import Node from './vertex.mjs';
+import {idGen, safeJsonParse,} from './utils.mjs';
+import Vertex from './vertex.mjs';
 
 
 //---------------------------------------------------------------[ DAG Utils ]--
+/**
+ * @param {!Vertex} n
+ * @returns {number}
+ */
+const grabId = n => n.id;
+
+
 /**
  * Given a map of a dag in the form below, return an array of leaf nodes, that
  * is, nodes with 0 in degrees / nodes where no edges point to it.
@@ -18,8 +25,8 @@ import Node from './vertex.mjs';
  *      [ 'D', new Set([]) ]
  *    ]);
  * @returns {{
- *  C: !Map<!Node, number>,
-    Q: !Array<!Node>
+ *  C: !Map<!Vertex, number>,
+    Q: !Array<!Vertex>
  * }}
  */
 const leafNodes = G => {
@@ -29,7 +36,7 @@ const leafNodes = G => {
   // appears as a value. In terms of a DAG, this describes how many edges
   // point to this node.
   /**
-   * @type {!Map<!Node, number>} A map of nodes to the number of times
+   * @type {!Map<!Vertex, number>} A map of nodes to the number of times
    *  that node has an in-edge. Leaf-nodes will have a value of 0
    */
   const C = [...G.keys()].reduce((p, c) => (p.set(c, 0)) || p, new Map());
@@ -37,7 +44,7 @@ const leafNodes = G => {
       arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0)));
 
   /**
-   * @type {!Array<!Node>} A List of nodes without any in degrees
+   * @type {!Array<!Vertex>} A List of nodes without any in degrees
    */
   const Q = [...G.keys()].filter(e => C.get(e) === 0);
   return {C, Q}
@@ -57,7 +64,7 @@ const leafNodes = G => {
  *      [ 'F', new Set(['C']) ],
  *      [ 'D', new Set([]) ]
  *    ]);
- * @returns {!Array<!Node>}
+ * @returns {!Array<!Vertex>}
  */
 const topoSort = G => {
 
@@ -109,9 +116,9 @@ const removeOrphans = G => {
 
 /**
  * @param {!Iterator<number>} gen
- * @returns {function(string):!Node}
+ * @returns {function(string):!Vertex}
  */
-const nodeMaker = gen => n => new Node(gen.next().value, n);
+const nodeMaker = gen => n => new Vertex(gen.next().value, n);
 
 
 export default class Dag {
@@ -150,18 +157,18 @@ export default class Dag {
 
     /**
      * The container of our DAG
-     * @type {!Map<!Node, !Set<!Node>>}
+     * @type {!Map<!Vertex, !Set<!Vertex>>}
      */
     this.G = new Map();
 
     /**
-     * @type {function(string): !Node}
+     * @type {function(string): !Vertex}
      * @private
      */
     this._nodeMaker = nodeMaker(idGen());
 
     /**
-     * @type {!Node}
+     * @type {!Vertex}
      * @private
      */
     this._rootNode = this.makeNode('ROOT');
@@ -245,7 +252,7 @@ export default class Dag {
   //-----------------------------------------------------------------[ Setup ]--
   /**
    * The single root node.
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   get root() {
     return this._rootNode;
@@ -254,7 +261,7 @@ export default class Dag {
 
   /**
    * The nodes in the order that they were added.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get nodes() {
     return [...this.G.keys()];
@@ -262,7 +269,7 @@ export default class Dag {
 
 
   /**
-   * The graph description in the form of Node -> Set<Node>
+   * The graph description in the form of Vertex -> Set<Vertex>
    * @returns {!Map}
    */
   get graph() {
@@ -274,7 +281,7 @@ export default class Dag {
    * A topological sorted array of node.
    * NOTE: This includes orphans, and orphans *may* be sorted after the root
    * node.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get topo() {
     return topoSort(this.G);
@@ -284,7 +291,7 @@ export default class Dag {
   /**
    * Leafs are nodes without any in-degrees. The partake in the solution.
    * NOTE: The root node *is* considered a leaf if nothing connects to it.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get leafs() {
     return leafNodes(this.G).Q;
@@ -295,7 +302,7 @@ export default class Dag {
    * Orphans are nodes that wont partake in the solution. That is nodes that
    * don't have an out degree.
    * NOTE: The root node is *not* treated as an orphan.
-   * @returns {!Array<!Node>}
+   * @returns {!Array<!Vertex>}
    */
   get orphans() {
     const orphans = [];
@@ -346,7 +353,7 @@ export default class Dag {
 
   /**
    * @param {string} name
-   * @returns {!Node}
+   * @returns {!Vertex}
    */
   makeNode(name) {
     const n = this._nodeMaker(name);
@@ -361,8 +368,8 @@ export default class Dag {
    * in node maker to algorithm to produce nodes with non contiguous ids.
    * If the given node has a higer ID than any of the existing nodes in the
    * DAG, new nodes created by the DAG will count from this new highest ID.
-   * @param {!Node} n
-   * @returns {(!Node|boolean)}
+   * @param {!Vertex} n
+   * @returns {(!Vertex|boolean)}
    */
   addNode(n) {
     if (this.G.has(n)) {
@@ -381,7 +388,7 @@ export default class Dag {
    * Delete a node. That is completely remove it from the DAG.
    * The node is disconnected from all its connections, and deleted.
    * The root node can not be deleted.
-   * @param {!Node} n
+   * @param {!Vertex} n
    * @returns {boolean}
    */
   delNode(n) {
@@ -408,8 +415,8 @@ export default class Dag {
    *  4) If the nodes are already connected, further attempts are ignored.
    *  5) It the connection will form a cycle, the nodes won't be connected.
    *
-   * @param {!Node} a
-   * @param {!Node} b
+   * @param {!Vertex} a
+   * @param {!Vertex} b
    * @returns {Dag}
    */
   connect(a, b) {
@@ -442,8 +449,8 @@ export default class Dag {
   /**
    * Disconnect node a from node b.
    * That is remove node a as an input to node b.
-   * @param {!Node} a
-   * @param {!Node} b
+   * @param {!Vertex} a
+   * @param {!Vertex} b
    * @returns {Dag}
    */
   disconnect(a, b) {
@@ -472,19 +479,19 @@ export default class Dag {
 
   /**
    * Return an array of all the nodes that connects to the given node.
-   * @param {!Node} n
-   * @returns {!Array<!Node>}
+   * @param {!Vertex} n
+   * @returns {!Array<!Vertex>}
    */
   indegrees(n) {
-    const hasN = isIn(n);
+    const hasN = Vertex.isIn(n);
     return [...this.G.entries()].reduce(hasN, []);
   }
 
 
   /**
    * Return an array of all the nodes that the given node connects to.
-   * @param {!Node} n
-   * @returns {!Array<!Node>}
+   * @param {!Vertex} n
+   * @returns {!Array<!Vertex>}
    */
   outdegrees(n) {
     return [...this.G.get(n)];
@@ -507,7 +514,7 @@ export default class Dag {
    * into the next node's solve function. Nodes are called to be solved in
    * topological order, meaning it is guaranteed that any input a node needs
    * will already have been calculated by a previous node.
-   * @param {Object=} opt_d
+   * @param {!Object=} opt_d
    * @returns {*}
    */
   solve(opt_d) {
@@ -528,7 +535,7 @@ export default class Dag {
 
   /**
    * @param {boolean=} debug
-   * @returns {function(*=): *}
+   * @returns {function((!Object|undefined)): *}
    */
   getSolver(debug = false) {
     const m = removeOrphans(this.getIdG());
@@ -555,69 +562,62 @@ export default class Dag {
   dump() {
     return JSON.stringify({
       M: [this.description, this.units, this.ref],
-      G: [...this.getIdG()].map(([k, s]) => [k, [...s]]),
+      G: [...this.getIdG()].map(([k, s]) => [k, [...s]]), // preserves insert order
       N: this.topo.map(e => e.dump())
     });
   }
 
-
-  // noinspection JSUnusedGlobalSymbols
   /**
    * @param {string} json A valid DAG Json String.
-   * @param {boolean=} allowRollback By default we allow a rollback, but
-   *    the rollback process itself does not.
-   * @returns {Dag}
+   * @return {Dag|undefined}
    */
-  read(json, allowRollback = true) {
+  static read(json) {
     // Read the string
     const j = safeJsonParse(json);
 
     // Store a valid rollback image of the current config.
-    const rollback = this.dump();
-
+    // const rollback = this.dump();
     if (j) {
       try {
-        // Destroy the current config
-        this.G = new Map();
-        this._rootNode = undefined;
-
         // Create a list of true nodes
-        const n = j.N.map(e => new Node(undefined, undefined, e));
+        const n = j.N.map(e => new Vertex(-1, undefined, e));
         const matchId = id => e => e.id === id;
         const findNode = id => n.find(matchId(id));
 
         // Create a map that directly mirrors the original, but with IDs only.
-        const g = new Map(/** @type Array */ (j.G));
-        this._rootNode = undefined;
+        const g = new Map(j.G);
+        const d = new Dag();
+        d.G = new Map();
+
         for (const k of g.keys()) {
-          this.addNode(findNode(k))
+          d.addNode(findNode(k))
         }
-        this._rootNode = this.nodes[0];
+        d._rootNode = d.nodes[0];
+
         for (const [k, arr] of g.entries()) {
           const node = findNode(k);
           arr.forEach(id => {
             const toNode = findNode(id);
-            this.connect(node, toNode);
+            d.connect(node, toNode);
           })
         }
 
         // Make sure that the order of each of the nodes args is the same as the
         // original.
-        this.nodes.forEach(n => {
-          n._args = j.N.find(e => e.I === n.id).A;
+        // this.nodes.forEach(n => {
+        d.nodes.forEach(n => {
+          n.setAllArgs(j.N.find(e => e.I === n.id).A);
         });
 
         // Attend to the human data
-        this.description = j.M ? (j.M[0] || '') : '';
-        this.units = j.M ? (j.M[1] || '') : '';
-        this.ref = j.M ? j.M[2] : null;
+        d.description = j.M ? (j.M[0] || '') : '';
+        d.units = j.M ? (j.M[1] || '') : '';
+        d.ref = j.M ? j.M[2] : null;
 
-
-        return this;
-      } catch (e) {
-        if (allowRollback) {
-          this.read(rollback, false);
-        }
+        return d;
+      }
+      catch (e) {
+        console.log(e);
       }
     }
   }
