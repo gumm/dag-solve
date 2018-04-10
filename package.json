@@ -1,10 +1,12 @@
 {
   "name": "dag-solve",
-  "version": "2.4.2",
+  "version": "3.0.1",
   "description": "Directed acyclic graph (DAG) based solver.",
-  "main": "dag.js",
+  "main": "main.js",
   "scripts": {
-    "test": "mocha --recursive ./tests/"
+    "compile": "build/compile.sh `pwd`",
+    "build": "npx rollup -c && npm run compile",
+    "test": "mocha -r esm --recursive ./test/"
   },
   "repository": {
     "type": "git",
@@ -22,12 +24,15 @@
     "url": "https://github.com/gumm/dag-solve/issues"
   },
   "homepage": "https://github.com/gumm/dag-solve#readme",
-  "dependencies": {
-    "badu": "^1.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "badu": "*",
+    "esm": "^3.0.17",
     "be-sert": "*",
-    "istanbul": "*",
-    "mocha": "^5.0.5"
+    "google-closure-compiler": "^20180402.0.0",
+    "mocha": "^5.0.5",
+    "rollup": "^0.57.1",
+    "rollup-plugin-commonjs": "^9.1.0",
+    "rollup-plugin-node-resolve": "^3.3.0"
   }
 }

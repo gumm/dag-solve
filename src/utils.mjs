@@ -1,4 +1,4 @@
-const B = require('badu');
+import {alwaysFalse, alwaysUndef, isString, pathOr, pRound, sameArr} from '../node_modules/badu/module/badu.mjs';
 
 const argRefSymbol = 'X';
 
@@ -6,10 +6,10 @@ const argRefSymbol = 'X';
  * @param {*} m
  * @returns {boolean}
  */
-const isRefString = m => B.isString(m) && !Number.isNaN(getRefIndex(m));
+const isRefString = m => isString(m) && !Number.isNaN(getRefIndex(m));
 
 /**
- * @param {!string} m Something like $1
+ * @param {string} m Something like $1
  * @returns {number}
  */
 const getRefIndex = m => parseInt(m.split('$').join(''), 10) - 1;
@@ -44,7 +44,7 @@ const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
 
 /**
  * @param {!Node} n
- * @returns {!number}
+ * @returns {number}
  */
 const grabId = n => n._id;
 
@@ -57,10 +57,10 @@ const grabId = n => n._id;
 function* idGen(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
-}
+  }
 
 
-  /**
+/**
  * Given a Json string, parse it without blowing up.
  * @param json
  * @returns {*}
@@ -80,8 +80,8 @@ const safeJsonParse = json => {
  * Given a predicate and a target value. return a function that takes a
  * value to test against the predicate.
  * Junk input always results in a failing test.
- * @param {!string} c Comparator
- * @returns {!function(!number): boolean}
+ * @param {string} c Comparator
+ * @returns {!function(number): boolean}
  */
 const makeComparator = (c) => {
   // noinspection EqualityComparisonWithCoercionJS
@@ -95,11 +95,11 @@ const makeComparator = (c) => {
     '<': (v1, v2) => v1 < v2,
     '>': (v1, v2) => v1 > v2
   };
-  return m[c] || B.alwaysFalse;
+  return m[c] || alwaysFalse;
 };
 
 /**
- * @param {!string} rv Return value type. Can be:
+ * @param {string} rv Return value type. Can be:
  *    'vu': Pass the input value through if it passes and undefined if it fails.
  *    '10': Pass the number 1 if it passes, else 0
  *    'tf': Pass with true, else fail.s
@@ -115,13 +115,13 @@ const genOutput = rv => {
     'tf': (b, v1, v2) => b,
     'ab': (b, v1, v2) => b ? v1 : v2
   };
-  return m[rv] || B.alwaysUndef;
+  return m[rv] || alwaysUndef;
 };
 
 /**
  * Given a string, sanitize it and only allow numbers, arithmetic and bitwise
  * operators
- * @param {!string} s
+ * @param {string} s
  * @returns {string}
  */
 const mathCleaner = s => {
@@ -140,7 +140,7 @@ const len = e => ('' + e).length;
 const int = e => parseInt(e, 10);
 
 /**
- * @param {(!string|!number)} fn
+ * @param {(string|number)} fn
  * @returns {Array<string|!Function>}
  */
 const funcMaker = fn => {
@@ -153,7 +153,7 @@ const funcMaker = fn => {
       `)
     ];
   } catch (err) {
-    return [`Could not make a function with "${fn}"`, B.alwaysUndef];
+    return [`Could not make a function with "${fn}"`, alwaysUndef];
   }
 };
 
@@ -162,7 +162,7 @@ const funcMaker = fn => {
 /**
  * Convert a mathematical string, into  a function that returns the
  * solution.
- * @param {(!string|!number)} m The string to convert. It can be of the form
+ * @param {(string|number)} m The string to convert. It can be of the form
  *    "12 / $4" in which case the token "$1" will be replaced by the token X[3].
  *    This means that when the arithmetic is calculated, we only need to pass in
  *    the variable "X" which should be an array of values, and we will be able
@@ -172,8 +172,8 @@ const funcMaker = fn => {
  */
 const mathFunc = (m, a) => {
   let err = 'Unable to clean math';
-  let f = B.alwaysUndef;
-  if (B.isString(m)) {
+  let f = alwaysUndef;
+  if (isString(m)) {
     const s = a.reduce(
         (p, c, i) => p.split(`$${i + 1}`).join(`${argRefSymbol}.get(${c})`),
         mathCleaner(m));
@@ -189,13 +189,13 @@ const mathFunc = (m, a) => {
 
 /**
  * @param {Array<Array<*>>} e The enum array.
- * @param {!Array<!number>} a
+ * @param {!Array<number>} a
  * @returns {Array<boolean|!Function>}
  */
 const enumFunc = (e, a) => {
 
   const r = e.map(([k, v]) => {
-    if (B.isString(v) && isRefString(v)) {
+    if (isString(v) && isRefString(v)) {
       const i = getRefIndex(v);
       return [k, sMap => sMap.get(a[i])];
     } else {
@@ -214,18 +214,18 @@ const enumFunc = (e, a) => {
 };
 
 /**
- * @param {!number} r The number of digits you want to round to.
- * @param {!Array<!number>} a
+ * @param {number} r The number of digits you want to round to.
+ * @param {!Array<number>} a
  * @returns {Array<boolean|!Function>}
  */
 const roundFunc = (r, a) => {
-  const round = B.pRound(r);
+  const round = pRound(r);
   return [null, sMap => round(sMap.get(a[0]))]
 };
 
 const compFuncHelper = (v, a) => {
   let f;
-  if (B.isString(v)) {
+  if (isString(v)) {
     const i = getRefIndex(v);
     f = sMap => sMap.get(a[i]);
   } else {
@@ -236,7 +236,7 @@ const compFuncHelper = (v, a) => {
 
 /**
  * @param {!Array<(number|string)>} c The comparison description.
- * @param {!Array<!number>} a
+ * @param {!Array<number>} a
  * @returns {Array<boolean|!Function>}
  */
 const comparatorFunc = (c, a) => {
@@ -259,7 +259,7 @@ const comparatorFunc = (c, a) => {
 
 /**
  * @param {!Array<(string|number)>} b The comparison description.
- * @param {!Array<!number>} a
+ * @param {!Array<number>} a
  * @returns {Array<boolean|!Function>}
  */
 const betweenFunc = (b, a) => {
@@ -287,16 +287,16 @@ const betweenFunc = (b, a) => {
 // noinspection JSUnusedLocalSymbols
 /**
  * @param {!Array<(string|number)>} p The path into the data structure.
- * @param {!Array<!number>} a
+ * @param {!Array<number>} a
  * @returns {Array<boolean|!Function>}
  */
 const dataPathFunc = (p, a) => {
   let f;
-  if (B.sameArr(p, [null])) {
+  if (sameArr(p, [null])) {
     // By convention when the path is null, just return the data...
     f = sMap => sMap.get('data');
   } else {
-    f = sMap => B.pathOr(undefined, p)(sMap.get('data'));
+    f = sMap => pathOr(undefined, p)(sMap.get('data'));
     }
   return [null, f];
 };
@@ -309,116 +309,24 @@ const dataPathFunc = (p, a) => {
  *      {
  *        data: {null|undefined|string|number|Object|Array},
  *        desc: {string|null|undefined}
- *        code: {!number}
+ *        code: {number}
  *      }
  *    }
  * }
- * @param {!number} code
- * @param {!string} access Valid access keys are:
+ * @param {number} code
+ * @param {string} access Valid access keys are:
  *    'data', 'description' or 'code'
- * @param {!Array<!number>} a
+ * @param {!Array<number>} a
  * @returns {Array<null|boolean|!Function>}
  */
 const eventCodeFunc = ([code, access], a) => {
   const p = ['_ev', code.toString(), access];
-  const f = sMap => B.pathOr(undefined, p)(sMap.get('data'));
+  const f = sMap => pathOr(undefined, p)(sMap.get('data'));
   return [null, f];
 };
 
 
-//---------------------------------------------------------------[ DAG Utils ]--
-/**
- * Given a map of a dag in the form below, return an array of leaf nodes, that
- * is, nodes with 0 in degrees / nodes where no edges point to it.
- * @param {!Map} G example:
- *    const G = new Map([
- *      [ 'A', new Set(['B', 'C']) ],
- *      [ 'B', new Set(['C', 'D']) ],
- *      [ 'C', new Set(['D']) ],
- *      [ 'E', new Set(['F']) ],
- *      [ 'F', new Set(['C']) ],
- *      [ 'D', new Set([]) ]
- *    ]);
- * @returns {Array}
- */
-const leafNodes = G => {
-  // Build a map of the form:
-  // { A: 0, B: 1, C: 3, E: 0, F: 1, D: 2 }
-  // where each key in the DAG is notated with the number of times it
-  // appears as a value. In terms of a DAG, this describes how many edges
-  // point to this node.
-  const C = [...G.keys()].reduce((p, c) => (p.set(c, 0)) || p, new Map());
-  [...G.values()].forEach(
-      arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0)));
-  const Q = [...G.keys()].filter(e => C.get(e) === 0);
-  return [C, Q];
-};
-
-/**
- * Given the DAG as below, return an array where the nodes of the DAG
- * are topologically sorted.
- * example:
- *    [ 'E', 'F', 'A', 'B', 'C', 'D' ]
- * @param {!Map} G example:
- *    const G = new Map([
- *      [ 'A', new Set(['B', 'C']) ],
- *      [ 'B', new Set(['C', 'D']) ],
- *      [ 'C', new Set(['D']) ],
- *      [ 'E', new Set(['F']) ],
- *      [ 'F', new Set(['C']) ],
- *      [ 'D', new Set([]) ]
- *    ]);
- * @returns {Array}
- */
-const topoSort = G => {
-
-  const [C, Q] = leafNodes(G);
-
-  // The result array.
-  const S = [];
-  while (Q.length) {
-    const u = Q.pop();
-    S.push(u);
-    G.get(u).forEach(v => {
-      C.set(v, C.get(v) - 1);
-      if (C.get(v) === 0) {
-        Q.push(v);
-      }
-    });
-    }
-  return S;
-};
-
-/**
- * Given a map recursively delete all orphan nodes.
- * @param {!Map} G example:
- *    const G = new Map([
- *      [ 'A', new Set(['B', 'C']) ],
- *      [ 'B', new Set(['C', 'D']) ],
- *      [ 'C', new Set(['D']) ],
- *      [ 'E', new Set(['F']) ],
- *      [ 'F', new Set(['C']) ],
- *      [ 'D', new Set([]) ]
- *    ]);
- * @returns {!Map}
- */
-const removeOrphans = G => {
-  for (const [k, s] of G.entries()) {
-    if (s.size === 0 && k !== 0) {
-      G.delete(k);
-      for (const v of G.values()) {
-        v.delete(k)
-      }
-    }
-    }
-  if ([...G.entries()].reduce(
-          (p, c) => p || (c[1].size === 0 && c[0] !== 0), false)) {
-    removeOrphans(G);
-    }
-  return G;
-};
-
-module.exports = {
+export {
   enumSet,
   enumUnSet,
   mathFunc,
@@ -429,11 +337,8 @@ module.exports = {
   dataPathFunc,
   eventCodeFunc,
   idGen,
-  topoSort,
-  leafNodes,
   isIn,
   grabId,
-  removeOrphans,
   safeJsonParse,
   mathCleaner,
   funcMaker,

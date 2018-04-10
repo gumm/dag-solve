@@ -1,6 +1,6 @@
 const assert = require('assert');
-const B = require('badu');
-const u = require('../utils/utils.js');
+import * as B from '../node_modules/badu/module/badu.mjs';
+import * as u from '../src/utils.mjs';
 
 describe('The mathCleaner function', () => {
 

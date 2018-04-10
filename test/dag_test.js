@@ -1,6 +1,6 @@
 const be = require('be-sert');
 const assert = require('assert');
-const DAG = require('../dag.js');
+import DAG from '../src/dag.mjs'
 
 
 describe('Root node is automatically created', () => {

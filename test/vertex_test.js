@@ -1,7 +1,7 @@
 const be = require('be-sert');
 const assert = require('assert');
-const Node = require('../utils/vertex.js');
-const DAG = require('../dag.js');
+import Node from '../src/vertex.mjs';
+import DAG from '../src/dag.mjs';
 
 describe('Nodes can do math.', () => {
   const g = new DAG();

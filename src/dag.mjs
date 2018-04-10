@@ -1,18 +1,120 @@
-const B = require('badu');
-const u = require('./utils/utils.js');
-const Node = require('./utils/vertex.js');
+import {isDef, maxInArr, isString,} from '../node_modules/badu/module/badu.mjs';
+
+import {grabId, idGen, isIn, safeJsonParse,} from './utils.mjs';
+import Node from './vertex.mjs';
+
+
+//---------------------------------------------------------------[ DAG Utils ]--
+/**
+ * Given a map of a dag in the form below, return an array of leaf nodes, that
+ * is, nodes with 0 in degrees / nodes where no edges point to it.
+ * @param {!Map} G example:
+ *    const G = new Map([
+ *      [ 'A', new Set(['B', 'C']) ],
+ *      [ 'B', new Set(['C', 'D']) ],
+ *      [ 'C', new Set(['D']) ],
+ *      [ 'E', new Set(['F']) ],
+ *      [ 'F', new Set(['C']) ],
+ *      [ 'D', new Set([]) ]
+ *    ]);
+ * @returns {{
+ *  C: !Map<!Node, number>,
+    Q: !Array<!Node>
+ * }}
+ */
+const leafNodes = G => {
+  // Build a map of the form:
+  // { A: 0, B: 1, C: 3, E: 0, F: 1, D: 2 }
+  // where each key in the DAG is notated with the number of times it
+  // appears as a value. In terms of a DAG, this describes how many edges
+  // point to this node.
+  /**
+   * @type {!Map<!Node, number>} A map of nodes to the number of times
+   *  that node has an in-edge. Leaf-nodes will have a value of 0
+   */
+  const C = [...G.keys()].reduce((p, c) => (p.set(c, 0)) || p, new Map());
+  [...G.values()].forEach(
+      arr => arr.forEach(e => C.set(e, C.has(e) ? C.get(e) + 1 : 0)));
+
+  /**
+   * @type {!Array<!Node>} A List of nodes without any in degrees
+   */
+  const Q = [...G.keys()].filter(e => C.get(e) === 0);
+  return {C, Q}
+};
+
+/**
+ * Given the DAG as below, return an array where the nodes of the DAG
+ * are topologically sorted.
+ * example:
+ *    [ 'E', 'F', 'A', 'B', 'C', 'D' ]
+ * @param {!Map} G example:
+ *    const G = new Map([
+ *      [ 'A', new Set(['B', 'C']) ],
+ *      [ 'B', new Set(['C', 'D']) ],
+ *      [ 'C', new Set(['D']) ],
+ *      [ 'E', new Set(['F']) ],
+ *      [ 'F', new Set(['C']) ],
+ *      [ 'D', new Set([]) ]
+ *    ]);
+ * @returns {!Array<!Node>}
+ */
+const topoSort = G => {
+
+  const {C, Q} = leafNodes(G);
+
+  // The result array.
+  const S = [];
+  while (Q.length) {
+    const u = Q.pop();
+    S.push(u);
+    G.get(u).forEach(v => {
+      C.set(v, C.get(v) - 1);
+      if (C.get(v) === 0) {
+        Q.push(v);
+      }
+    });
+    }
+  return S;
+};
+
+/**
+ * Given a map recursively delete all orphan nodes.
+ * @param {!Map} G example:
+ *    const G = new Map([
+ *      [ 'A', new Set(['B', 'C']) ],
+ *      [ 'B', new Set(['C', 'D']) ],
+ *      [ 'C', new Set(['D']) ],
+ *      [ 'E', new Set(['F']) ],
+ *      [ 'F', new Set(['C']) ],
+ *      [ 'D', new Set([]) ]
+ *    ]);
+ * @returns {!Map}
+ */
+const removeOrphans = G => {
+  for (const [k, s] of G.entries()) {
+    if (s.size === 0 && k !== 0) {
+      G.delete(k);
+      for (const v of G.values()) {
+        v.delete(k)
+      }
+    }
+    }
+  if ([...G.entries()].reduce(
+          (p, c) => p || (c[1].size === 0 && c[0] !== 0), false)) {
+    removeOrphans(G);
+    }
+  return G;
+};
 
 /**
  * @param {!Iterator<number>} gen
- * @returns {function(!string):!Node}
+ * @returns {function(string):!Node}
  */
 const nodeMaker = gen => n => new Node(gen.next().value, n);
 
 
-/**
- * @type {DAG}
- */
-class DAG {
+export default class Dag {
   constructor() {
     /**
      * Dag can be given meta data for the duration of its life.
@@ -33,7 +135,7 @@ class DAG {
     /**
      * Optional description for the DAG.
      * Not used in calculations, but is dumped and read.
-     * @type {!string}
+     * @type {string}
      * @private
      */
     this._description = '';
@@ -41,22 +143,22 @@ class DAG {
     /**
      * Optional description of the units.
      * Not used in calculations, but is dumped and read.
-     * @type {!string}
+     * @type {string}
      * @private
      */
     this._units = '';
 
     /**
      * The container of our DAG
-     * @type {Map<Node, Set<Node>>}
+     * @type {!Map<!Node, !Set<!Node>>}
      */
     this.G = new Map();
 
     /**
-     * @type {function(!string): !Node}
+     * @type {function(string): !Node}
      * @private
      */
-    this._nodeMaker = nodeMaker(u.idGen());
+    this._nodeMaker = nodeMaker(idGen());
 
     /**
      * @type {!Node}
@@ -88,7 +190,7 @@ class DAG {
 
   /**
    * Get the DAG description
-   * @returns {*}
+   * @returns {string}
    */
   get description() {
     return this._description;
@@ -100,13 +202,13 @@ class DAG {
    * @param {string} s
    */
   set description(s) {
-    this._description = s;
+    this._description = isString(s) ? s : this._description;
   }
 
 
   /**
    * Get the DAG units
-   * @returns {*}
+   * @returns {string}
    */
   get units() {
     return this._units;
@@ -118,13 +220,13 @@ class DAG {
    * @param {string} s
    */
   set units(s) {
-    this._units = s;
+    this._units = isString(s) ? s : this._units;
   }
 
 
   /**
    * Get the DAG reference.
-   * @returns {*}
+   * @returns {string|number|null}
    */
   get ref() {
     return this._ref;
@@ -133,10 +235,10 @@ class DAG {
 
   /**
    * Set the DAG reference.
-   * @param {string|number|undefined|null} s
+   * @param {string|number|null} s
    */
   set ref(s) {
-    this._ref = B.isDef(s) ? s : null;
+    this._ref = isDef(s) ? s : null;
   }
 
 
@@ -175,7 +277,7 @@ class DAG {
    * @returns {!Array<!Node>}
    */
   get topo() {
-    return u.topoSort(this.G);
+    return topoSort(this.G);
   }
 
 
@@ -185,8 +287,7 @@ class DAG {
    * @returns {!Array<!Node>}
    */
   get leafs() {
-    const [, Q] = u.leafNodes(this.G);
-    return Q;
+    return leafNodes(this.G).Q;
   }
 
 
@@ -209,7 +310,7 @@ class DAG {
 
   /**
    * A list of the node names
-   * @return {!Array<!string>}
+   * @return {!Array<string>}
    */
   get names() {
     return this.nodes.map(e => e.name);
@@ -218,7 +319,7 @@ class DAG {
 
   /**
    * A list of the node names
-   * @return {!Array<!string>}
+   * @return {!Array<string>}
    */
   get topoNames() {
     return this.topo.map(e => e.name);
@@ -227,7 +328,7 @@ class DAG {
 
   /**
    * A list of the node IDs
-   * @return {!Array<!number>}
+   * @return {!Array<number>}
    */
   get ids() {
     return this.nodes.map(e => e.id);
@@ -236,7 +337,7 @@ class DAG {
 
   /**
    * A list of the node IDs
-   * @return {!Array<!number>}
+   * @return {!Array<number>}
    */
   get topoIds() {
     return this.topo.map(e => e.id);
@@ -244,7 +345,7 @@ class DAG {
 
 
   /**
-   * @param {!string} name
+   * @param {string} name
    * @returns {!Node}
    */
   makeNode(name) {
@@ -261,7 +362,7 @@ class DAG {
    * If the given node has a higer ID than any of the existing nodes in the
    * DAG, new nodes created by the DAG will count from this new highest ID.
    * @param {!Node} n
-   * @returns {(!Node|!boolean)}
+   * @returns {(!Node|boolean)}
    */
   addNode(n) {
     if (this.G.has(n)) {
@@ -271,7 +372,7 @@ class DAG {
       return false;
     }
     this.G.set(n, new Set());
-    this._nodeMaker = nodeMaker(u.idGen(B.maxInArr(this.ids)));
+    this._nodeMaker = nodeMaker(idGen(maxInArr(this.ids)));
     return n;
   }
 
@@ -309,7 +410,7 @@ class DAG {
    *
    * @param {!Node} a
    * @param {!Node} b
-   * @returns {DAG}
+   * @returns {Dag}
    */
   connect(a, b) {
     if (a === this.root) {
@@ -343,7 +444,7 @@ class DAG {
    * That is remove node a as an input to node b.
    * @param {!Node} a
    * @param {!Node} b
-   * @returns {DAG}
+   * @returns {Dag}
    */
   disconnect(a, b) {
     if (this.G.has(a)) {
@@ -357,7 +458,7 @@ class DAG {
   /**
    * Recursively delete all the orphaned nodes.
    * This mutates the DAG Map.
-   * @returns {DAG}
+   * @returns {Dag}
    */
   clean() {
     this.orphans.forEach(e => this.delNode(e));
@@ -375,7 +476,7 @@ class DAG {
    * @returns {!Array<!Node>}
    */
   indegrees(n) {
-    const hasN = u.isIn(n);
+    const hasN = isIn(n);
     return [...this.G.entries()].reduce(hasN, []);
   }
 
@@ -395,8 +496,9 @@ class DAG {
    * values.
    * @returns {!Map}
    */
-  getIdG(){return [...this.G].reduce(
-      (p, [k, s]) => p.set(k.id, new Set([...s].map(u.grabId))), new Map())}
+  getIdG(){return [
+    ...this.G
+  ].reduce((p, [k, s]) => p.set(k.id, new Set([...s].map(grabId))), new Map())}
 
 
   /**
@@ -429,9 +531,9 @@ class DAG {
    * @returns {function(*=): *}
    */
   getSolver(debug = false) {
-    const m = u.removeOrphans(this.getIdG());
+    const m = removeOrphans(this.getIdG());
     const validTopoNodes = this.topo.filter(e => m.has(e.id));
-    const validTopoIds = validTopoNodes.map(u.grabId);
+    const validTopoIds = validTopoNodes.map(grabId);
     const cleanNodes = validTopoNodes.map(n => n.clean());
     const rootId = this._rootNode.id;
 
@@ -448,7 +550,7 @@ class DAG {
 
   /**
    * Dump the DAG to a JSON string.
-   * @returns {!string}
+   * @returns {string}
    */
   dump() {
     return JSON.stringify({
@@ -461,14 +563,14 @@ class DAG {
 
   // noinspection JSUnusedGlobalSymbols
   /**
-   * @param {!string} json A valid DAG Json String.
+   * @param {string} json A valid DAG Json String.
    * @param {boolean=} allowRollback By default we allow a rollback, but
    *    the rollback process itself does not.
-   * @returns {DAG}
+   * @returns {Dag}
    */
   read(json, allowRollback = true) {
     // Read the string
-    const j = u.safeJsonParse(json);
+    const j = safeJsonParse(json);
 
     // Store a valid rollback image of the current config.
     const rollback = this.dump();
@@ -520,5 +622,3 @@ class DAG {
     }
   }
 }
-
-module.exports = DAG;

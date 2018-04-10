@@ -1,36 +1,34 @@
-const B = require('badu');
-const u = require('./utils.js');
+import {alwaysUndef, isDef, isNumber, pRound, toLowerCase,} from '../node_modules/badu/module/badu.mjs';
+import {betweenFunc, comparatorFunc, dataPathFunc, enumFunc, enumSet, enumUnSet, eventCodeFunc, isRefString, mathFunc, roundFunc} from './utils.mjs';
 
-/**
- * @type {Node}
- */
-class Node {
+
+export default class Node {
   /**
-   * @param {!number|undefined} id
-   * @param {!string|undefined} name
+   * @param {number} id
+   * @param {string|undefined} name
    * @param {Object|undefined} obj
    */
   constructor(id, name, obj = undefined) {
     /**
-     * @type {!number}
+     * @type {number}
      * @private
      */
     this._id = id;
 
     /**
-     * @type {!string}
+     * @type {string|undefined}
      * @private
      */
     this._name = name;
 
     /**
-     * @type {!Array<!number>}
+     * @type {!Array<number>}
      * @private
      */
     this._args = [];
 
     /**
-     * @type {!string|!number|undefined}
+     * @type {string|number|undefined}
      * @private
      */
     this._math = undefined;
@@ -42,19 +40,19 @@ class Node {
     this._enum = [];
 
     /**
-     * @type {!Array<!string|!number>}
+     * @type {!Array<string|number>}
      * @private
      */
     this._comparator = [];
 
     /**
-     * @type {!Array<!string|!number>}
+     * @type {!Array<string|number>}
      * @private
      */
     this._between = [];
 
     /**
-     * @type {!number|undefined}
+     * @type {number|undefined}
      * @private
      */
     this._round = undefined;
@@ -66,7 +64,7 @@ class Node {
     this._path = undefined;
 
     /**
-     * @type {!Array<!string|!number>}
+     * @type {!Array<string|number>}
      * @private
      */
     this._evCode = [];
@@ -90,7 +88,7 @@ class Node {
      * @type {function(...*): (undefined|*)}
      * @private
      */
-    this._func = B.alwaysUndef;
+    this._func = alwaysUndef;
 
     // We overwrite *some* elements, but we keep the _args and _state both
     // as default, because the Graph will populate those.
@@ -164,21 +162,21 @@ class Node {
 
   // -------------------------------------------------------------[ Identity ]--
   /**
-   * @returns {!number}
+   * @returns {number}
    */
   get id() {
     return this._id;
   }
 
   /**
-   * @returns {!string}
+   * @returns {string}
    */
   get name() {
     return this._name;
   }
 
   /**
-   * @param {!string} n
+   * @param {string} n
    */
   set name(n) {
     this._name = n;
@@ -206,7 +204,7 @@ class Node {
   }
 
   /**
-   * @returns {!Array<!number>}
+   * @returns {!Array<number>}
    */
   get args() {
     return this._args;
@@ -235,11 +233,11 @@ class Node {
    * @returns {Node}
    */
   setEvCode(n, opt_access) {
-    if (B.isDef(n)) {
+    if (isDef(n)) {
       this._clearAll();
       let access = 'data';
       if (opt_access) {
-        const ac = B.toLowerCase(opt_access);
+        const ac = toLowerCase(opt_access);
         access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
       }
       this._evCode = [n, access];
@@ -278,11 +276,11 @@ class Node {
 
   // -----------------------------------------------------------------[ Math ]--
   /**
-   * @param {!string|!number|undefined} s
+   * @param {string|number|undefined} s
    * @returns {Node}
    */
   setMath(s) {
-    if (B.isDef(s)) {
+    if (isDef(s)) {
       this._clearAll();
       this._math = s;
       }
@@ -303,9 +301,9 @@ class Node {
    * @returns {Node}
    */
   setRound(int) {
-    if (B.isNumber(int)) {
+    if (isNumber(int)) {
       this._clearAll();
-      this._round = B.pRound(0)(int);
+      this._round = pRound(0)(int);
       }
 
     return this;
@@ -319,10 +317,10 @@ class Node {
   /**
    * Comparison operators
    * @param {number|string} v1 Value with which to test the predicate
-   * @param {!string} cmp Comparison operator. Must be one of:
+   * @param {string} cmp Comparison operator. Must be one of:
    *    ==, <=, >=, <, >
    * @param {number|string} v2 Value with which to test the predicate
-   * @param {!string} outputFormat Result value. What is passed along
+   * @param {string} outputFormat Result value. What is passed along
    *    if the comparison either passes or fails. The only allowed values are:
    *    "vu" - The input value on pass, else undefined
    *    "10" - The number 1 on pass, else the number 0
@@ -341,8 +339,8 @@ class Node {
    */
   setComparator(v1, cmp, v2, outputFormat) {
     let pass = true;
-    pass = (B.isNumber(v1) || u.isRefString(v1)) && pass;
-    pass = (B.isNumber(v2) || u.isRefString(v2)) && pass;
+    pass = (isNumber(v1) || isRefString(v1)) && pass;
+    pass = (isNumber(v2) || isRefString(v2)) && pass;
     pass = (['!=', '!==', '==', '===', '<=', '>=', '<', '>'].includes(cmp)) &&
         pass;
     pass = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && pass;
@@ -371,7 +369,7 @@ class Node {
    * @param {number|string} v The value to test
    * @param {number|string} s1 Stop value
    * @param {number|string} s2 Stop value
-   * @param {!string} outputFormat Result value. What is passed along
+   * @param {string} outputFormat Result value. What is passed along
    *    if the comparison either passes or fails. The only allowed values are:
    *    "vu" - The input value on pass, else undefined
    *    "10" - The number 1 on pass, else the number 0
@@ -389,9 +387,9 @@ class Node {
    */
   setBetween(v, s1, s2, outputFormat) {
     let isClean = true;
-    isClean = (B.isNumber(v) || u.isRefString(v)) && isClean;
-    isClean = (B.isNumber(s1) || u.isRefString(s1)) && isClean;
-    isClean = (B.isNumber(s2) || u.isRefString(s2)) && isClean;
+    isClean = (isNumber(v) || isRefString(v)) && isClean;
+    isClean = (isNumber(s1) || isRefString(s1)) && isClean;
+    isClean = (isNumber(s2) || isRefString(s2)) && isClean;
     isClean = (['vu', '10', 'tf', 'ab'].includes(outputFormat)) && isClean;
 
     if (isClean) {
@@ -417,7 +415,7 @@ class Node {
       return this
     }
     this._clearAll(false);
-    this._enum = u.enumSet(this._enum, k, v);
+    this._enum = enumSet(this._enum, k, v);
     return this;
   }
 
@@ -426,7 +424,7 @@ class Node {
    * @returns {!Node}
    */
   delEnum(k) {
-    this._enum = u.enumUnSet(this._enum, k);
+    this._enum = enumUnSet(this._enum, k);
     this._nodus = 'Changed';
     return this;
   }
@@ -443,31 +441,31 @@ class Node {
   clean() {
     if (this.math) {
       // This node does math.
-      [this._nodus, this._func] = u.mathFunc(this.math, this.args);
+      [this._nodus, this._func] = mathFunc(this.math, this.args);
 
     } else if (this.enum && this.enum.length) {
       // This node does enums
-      [this._nodus, this._func] = u.enumFunc(this.enum, this.args);
+      [this._nodus, this._func] = enumFunc(this.enum, this.args);
 
-    } else if (B.isDef(this.round)) {
+    } else if (isDef(this.round)) {
       // This node does rounding
-      [this._nodus, this._func] = u.roundFunc(this.round, this.args);
+      [this._nodus, this._func] = roundFunc(this.round, this.args);
 
     } else if (this.comparator && this.comparator.length) {
       // This node is a comparator
-      [this._nodus, this._func] = u.comparatorFunc(this.comparator, this.args);
+      [this._nodus, this._func] = comparatorFunc(this.comparator, this.args);
 
     } else if (this.between && this.between.length) {
       // This node is a between filter
-      [this._nodus, this._func] = u.betweenFunc(this.between, this.args);
+      [this._nodus, this._func] = betweenFunc(this.between, this.args);
 
     } else if (this.path && this.path.length) {
       // This node can access data via a path into a data structure.
-      [this._nodus, this._func] = u.dataPathFunc(this.path, this.args);
+      [this._nodus, this._func] = dataPathFunc(this.path, this.args);
 
     } else if (this.evCode && this.evCode.length === 2) {
       // This node can access event codes.
-      [this._nodus, this._func] = u.eventCodeFunc(this.evCode, this.args);
+      [this._nodus, this._func] = eventCodeFunc(this.evCode, this.args);
 
     } else if (this._fallback) {
       // This does nothing but return a fallback value
@@ -502,5 +500,3 @@ class Node {
     }
   }
 }
-
-module.exports = Node;
