@@ -8,6 +8,8 @@ echo "${BUILD}"
 cd ${WORKSPACE}
 
 ES5=(
+#  "--assume_function_wrapper"
+#  "--output_wrapper=(function(){%output%})();"
   "--language_in=ES6_Strict"
   "--language_out=ES5_Strict"
   "--compilation_level=SIMPLE"
@@ -18,6 +20,8 @@ ES5=(
 )
 
 ES6=(
+#  "--assume_function_wrapper"
+#  "--output_wrapper=(function(){%output%})();"
   "--language_in=ES6_Strict"
   "--language_out=ES6_Strict"
   "--compilation_level=SIMPLE"

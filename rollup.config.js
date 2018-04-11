@@ -7,7 +7,7 @@ export default [{
   output: {
     file: 'dist/_temp.js',
     format: 'iife',
-    name: 'dag_solve',
+    name: 'Dag',
   },
   plugins: [
     resolve(),
@@ -20,7 +20,7 @@ export default [{
     output: {
       file: 'main.js',
       format: 'cjs',
-      name: 'dag_solve',
+      name: 'Dag',
     },
     plugins: [
       resolve(),

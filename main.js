@@ -250,11 +250,11 @@ const mathCleaner = s => {
 const funcMaker = fn => {
   try {
     return [
-      null, new Function(argRefSymbol, `
-      const len = e => ('' + e).length;
-      const int = e => parseInt(e, 10);
-      try { return ${fn}; } catch(e) { return; }
-      `)
+      null, new Function(argRefSymbol, [
+      'const len = e => ("" + e).length;',
+      'const int = e => parseInt(e, 10);',
+      `try {return ${fn};}catch(e){return;}`
+      ].join(''))
     ];
   } catch (err) {
     return [`Could not make a function with "${fn}"`, alwaysUndef];
@@ -1473,8 +1473,8 @@ class Dag {
   /**
    * Solve the dag, but return an array of the value of each node in
    * topo order. The same order a topo, topoIds and topoNames
-   * @param opt_d
-   * @returns {*}
+   * @param {!Object=} opt_d
+   * @returns {Map<*, *>}
    */
   debug(opt_d) {
     return this.getSolver(true)(opt_d);
@@ -1522,6 +1522,44 @@ class Dag {
       G: [...this.getIdG()].map(([k, s]) => [k, [...s]]), // preserves insert order
       N: this.topo.map(e => e.dump())
     });
+  }
+
+  /**
+   * Dump the graph to a DOT-file
+   * Read with: http://www.webgraphviz.com/
+   * @param {!Object=} opt_d
+   * @param {boolean} id Print the node id
+   * @param {boolean} value Print the node solved value
+   * @return {string}
+   */
+  dumpToDot(opt_d, id=false, value=false) {
+    const solveMap = this.debug(opt_d);
+    console.log(solveMap);
+    const helper = node => {
+      let i = node.id;
+      let n = node.name;
+      let v = solveMap.get(i);
+      let r = `${n}`;
+      if (id) {
+        r =  `${node.id}:${node.name}`;
+      }
+      if (value) {
+        r =  `${r} = ${v}`;
+      }
+      return `"${r}"`;
+    };
+    let descr = this.description;
+    descr = this.units.trim().length ? `${descr} - ${this.units}` : descr;
+    const tups = [...this.G.entries()]
+        .reduce((p,[k,v]) => [...p, ...[...v].map(e => [k, e])], [])
+        .map(([a,b]) => [helper(a), helper(b)])
+        .reduce((p, [f, t]) => `${p} ${f} -> ${t};`, '');
+    return [
+        'digraph {',
+          `label = "${descr}";`,
+          `${tups}`,
+      '}'
+    ].join(' ')
   }
 
   /**

@@ -149,11 +149,11 @@ const int = e => parseInt(e, 10);
 const funcMaker = fn => {
   try {
     return [
-      null, new Function(argRefSymbol, `
-      const len = e => ('' + e).length;
-      const int = e => parseInt(e, 10);
-      try { return ${fn}; } catch(e) { return; }
-      `)
+      null, new Function(argRefSymbol, [
+      'const len = e => ("" + e).length;',
+      'const int = e => parseInt(e, 10);',
+      `try {return ${fn};}catch(e){return;}`
+      ].join(''))
     ];
   } catch (err) {
     return [`Could not make a function with "${fn}"`, alwaysUndef];
