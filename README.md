@@ -221,7 +221,7 @@ to the graph won't be propagated to the solver function. If the graph
 changes, (either in structure, or in the set-up of any of its nodes) the
 solver function needs to be replaced.
 
-# Serialise and restoring a graph via JSON
+# Serialise and restore a graph via JSON
 Once a graph is configured it can be dumped to JSON for storage, and read
 back when needed. Using the above graph:
 ```javascript
@@ -259,7 +259,7 @@ g2 === g;             // False
 
 ```
 
-# Dump a graph to GraphViz DOT format string.
+# Dump a graph to GraphViz DOT format string
 ```javascript
 g2.dumpToDot({v:10});
 ```
