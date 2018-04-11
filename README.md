@@ -259,3 +259,46 @@ g2 === g;             // False
 
 ```
 
+# Dump a graph to GraphViz DOT format string.
+```javascript
+g2.dumpToDot({v:10});
+```
+results in a string:
+```
+digraph {
+    label = "Calc Temp - °C";
+    "A" -> "rounder";
+    "B" -> "A";
+    "C" -> "B";
+    "D" -> "C";
+    "D" -> "E";
+    "D" -> "A";
+    "E" -> "B";
+    "E" -> "A";
+    "rounder" -> "ROOT";
+}
+```
+Optionally pass in data, and tell dumpToDot to print
+the results of the solved graph.
+
+```javascript
+g2.dumpToDot({v:1}, true, true);
+```
+```
+digraph {
+    label = "Calc Temp - °C";
+    "1:A = 1.2893518518518516" -> "6:rounder = 1.29";
+    "2:B = 4.4559999999999995" -> "1:A = 1.2893518518518516";
+    "3:C = 1" -> "2:B = 4.4559999999999995";
+    "4:D = 1" -> "3:C = 1";
+    "4:D = 1" -> "5:E = 3.456";
+    "4:D = 1" -> "1:A = 1.2893518518518516";
+    "5:E = 3.456" -> "2:B = 4.4559999999999995";
+    "5:E = 3.456" -> "1:A = 1.2893518518518516";
+    "6:rounder = 1.29" -> "0:ROOT = 1.29"; }
+```
+These DOT-file strings can be used to visualize the graph.
+See for instance tools like: http://www.webgraphviz.com/
+
+
+
