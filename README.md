@@ -300,7 +300,7 @@ digraph {
 These DOT-file strings can be used to visualize the graph.
 See for instance tools like: http://www.webgraphviz.com/ or http://viz-js.com/
 
-[[https://github.com/gumm/dag-solve/img/dot.png|alt=graphvis_rendering]]
+[[https://github.com/gumm/dag-solve/blob/master/img/dot.png|alt=graphvis_render]]
 
 
 
