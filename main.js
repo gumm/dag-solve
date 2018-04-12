@@ -286,7 +286,7 @@ const mathFunc = (m, a) => {
     }
   } else {
     [err, f] = funcMaker(m);
-    }
+  }
   return [err, f];
 };
 
@@ -339,7 +339,7 @@ const compFuncHelper = (v, a) => {
     f = sMap => sMap.get(a[i]);
   } else {
     f = () => v;
-    }
+  }
   return f;
 };
 
@@ -402,10 +402,12 @@ const dataPathFunc = (p, a) => {
   let f;
   if (sameArr(p, [null])) {
     // By convention when the path is null, just return the data...
-    f = sMap => sMap.get('data');
+    f = sMap => sMap.get(a.length ? a[0] : 'data');
   } else {
-    f = sMap => pathOr(undefined, p)(sMap.get('data'));
-    }
+    f = sMap => {
+      return pathOr(undefined, p)(sMap.get(a.length ? a[0] : 'data'));
+    };
+  }
   return [null, f];
 };
 
@@ -434,6 +436,65 @@ const eventCodeFunc = ([code, access], a) => {
   return [null, f];
 };
 
+
+/**
+ * @param {*} d The fallback/default value;
+ * @param {!Array<number>} a
+ * @returns {funcGetterType}
+ */
+const fallBackFunc = (d, a) => {
+  const f = () => d;
+  return [null, f];
+};
+
+/**
+ * Functions that can identify a node type.
+ * @type {Map<string, function(!Vertex): boolean>}
+ */
+const nodeTypeMap = new Map()
+    .set('Math', n => isDef(n.math))
+    .set('Enumerator', n => n.enum && n.enum.length)
+    .set('Rounding', n => isDef(n.round))
+    .set('Comparator', n => n.comparator && n.comparator.length)
+    .set('Range', n => n.between && n.between.length)
+    .set('Data Access', n => n.path && n.path.length)
+    .set('Event Access', n => n.evCode && n.evCode.length === 2)
+    .set('Constant', n => isDef(n.fallback));
+
+/**
+ * Node types to the functions they need to solve.
+ * @type {Map<(string|undefined), function(!Vertex): !Array<Function|string|undefined>>}
+ */
+const funcMap = new Map()
+    .set('Math', n => mathFunc(n.math, n.args))
+    .set('Enumerator', n => enumFunc(n.enum, n.args))
+    .set('Rounding', n => roundFunc(/** @type {number} */(n.round), n.args))
+    .set('Comparator', n => comparatorFunc(n.comparator, n.args))
+    .set('Range', n => betweenFunc(n.between, n.args))
+    .set('Data Access', n => dataPathFunc(n.path, n.args))
+    .set('Event Access', n => eventCodeFunc(n.evCode, n.args))
+    .set('Constant', n => fallBackFunc(n.fallback, n.args))
+    .set(undefined, n => fallBackFunc(n.fallback, n.args));
+
+
+/**
+ * Node type to a human readable description of their solution.
+ * Mostly used in the DOT formatter.
+ * @type {Map<string|undefined, function(!Vertex): string>}
+ */
+const nodeDescriptionMap = new Map()
+    .set('Math', n => n.math)
+    .set('Enumerator', n => n.enum.map(([k, v]) => `{${k} 🠚 ${v}}`).join('|'))
+    .set('Rounding', n => n.round)
+    .set('Comparator', n =>
+        n.comparator.join(' ').replace(/([<>])/gi, String.raw`\$1`))
+    .set('Range', n => n.between.join(' '))
+    .set('Data Access', n => n.path.join(' '))
+    .set('Event Access', n => n.evCode.join(' '))
+    .set('Constant', n => n.fallback)
+    .set(undefined, n => 'Not Configured');
+
+
 class Vertex {
   /**
    * @param {number} id
@@ -441,6 +502,7 @@ class Vertex {
    * @param {!dumpType|undefined} obj
    */
   constructor(id, name, obj = undefined) {
+
     /**
      * @type {number}
      * @private
@@ -596,6 +658,14 @@ class Vertex {
     return this._id;
   }
 
+
+  /**
+   * @return {string}
+   */
+  get descr() {
+    return nodeDescriptionMap.get(this.type)(this);
+  }
+
   /**
    * @returns {string|undefined}
    */
@@ -608,6 +678,14 @@ class Vertex {
    */
   set name(n) {
     this._name = n;
+  }
+
+  /**
+   * @return {string|undefined}
+   */
+  get type() {
+    const t = [...nodeTypeMap.entries()].find(([k,v]) => v(this));
+    return t ? t[0] : undefined;
   }
 
   // -----------------------------------------------------------------[ Args ]--
@@ -678,7 +756,7 @@ class Vertex {
         access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
       }
       this._evCode = [n, access];
-      }
+    }
 
     return this;
   }
@@ -720,7 +798,7 @@ class Vertex {
     if (isDef(s)) {
       this._clearAll();
       this._math = s;
-      }
+    }
 
     return this;
   }
@@ -741,7 +819,7 @@ class Vertex {
     if (isNumber(int)) {
       this._clearAll();
       this._round = pRound(0)(/** @type {number} */(int));
-      }
+    }
 
     return this;
   };
@@ -788,7 +866,7 @@ class Vertex {
     if (pass) {
       this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-      }
+    }
 
     return this;
   };
@@ -835,7 +913,7 @@ class Vertex {
     if (isClean) {
       this._clearAll();
       this._between = [v, s1, s2, outputFormat];
-      }
+    }
 
     return this;
   };
@@ -870,51 +948,17 @@ class Vertex {
   }
 
   /**
-   * @returns {Array<Array<*>>}
+   * @returns {!Array<!Array<*>>}
    */
-  get enum
-  () {
+  get enum() {
     return this._enum;
   }
 
   // ----------------------------------------------------------------[ Solve ]--
   clean() {
-    let nf = [this._nodus, this._func];
-    if (this.math) {
-      // This node does math.
-      nf = mathFunc(this.math, this.args);
-
-    } else if (this.enum && this.enum.length) {
-      // This node does enums
-      nf = enumFunc(this.enum, this.args);
-
-    } else if (isDef(this.round)) {
-      // This node does rounding
-      nf = roundFunc(/** @type {number} */(this.round), this.args);
-
-    } else if (this.comparator && this.comparator.length) {
-      // This node is a comparator
-      nf = comparatorFunc(this.comparator, this.args);
-
-    } else if (this.between && this.between.length) {
-      // This node is a between filter
-      nf = betweenFunc(this.between, this.args);
-
-    } else if (this.path && this.path.length) {
-      // This node can access data via a path into a data structure.
-      nf = dataPathFunc(this.path, this.args);
-
-    } else if (this.evCode && this.evCode.length === 2) {
-      // This node can access event codes.
-      nf = eventCodeFunc(this.evCode, this.args);
-
-    } else if (this._fallback) {
-      // This does nothing but return a fallback value
-      nf = [null, () => this._fallback];
-    }
-
-    [this._nodus, this._func] = nf;
-
+    const [n, f] = funcMap.get(this.type)(this);
+    this._nodus = /** @type (null|string|undefined) */(n);
+    this._func = /** @type (!Function) */(f);
     return this;
   }
 
@@ -952,7 +996,74 @@ class Vertex {
   }
 }
 
+//---------------------------------------------------------------[ DOT Utils ]--
+/**
+ * @param {!Map<*,*>|undefined} solveMap
+ * @return {function(!Vertex): string}
+ */
+const nodeToDot = solveMap => node => {
+  const i = node.id;
+  const n = node.name;
+  const t = n === 'ROOT' ? 'Root' : node.type;
+  const d = n === 'ROOT' ? 'Final' : node.descr;
+  const a = node.args;
+  const args = a.map((e,i) => `<${e}>$${i + 1}`).join('|');
+  const f = node.fallback;
+  const e = f ? `|Default: ${f}`: '';
+  const v = solveMap ? `|${solveMap.get(i)}` : '';
+  return `${i} [label="{{${args}}|${t}|${d}|{ID:${i}|${n}}${e}${v}}"];`;
+};
+
+/**
+ * @param {!Map<*,*>|undefined} solveMap
+ * @return {function(!Vertex, !Vertex): string}
+ */
+const edgeToDot = solveMap => (f, t) => {
+  const v = solveMap ? solveMap.get(f.id) : '';
+  return `${f.id} -> ${t.id}:${f.id}[label="${v}"]`;
+};
+
+/**
+ * Print a graph as a DOT-file string.
+ * @param {!Dag} dag
+ * @param {!Map<*, *>|undefined} solveMap
+ * @return {string}
+ */
+const graphToDot = (dag, solveMap) => {
+
+  // Edges
+  const makeEdgeString = edgeToDot(solveMap);
+  const edgeStatements = [...dag.G.entries()]
+      .reduce((p, [k, v]) => [...p, ...[...v].map(e => [k, e])], [])
+      .map(([a, b]) => makeEdgeString(a, b))
+      .reduce((p, v) => `${p} ${v};`, '');
+
+  // Nodes
+  const makeNodeString = nodeToDot(solveMap);
+  const nodeStatements = dag.nodes.map(makeNodeString).join(' ');
+
+  // Graph
+  let label = dag.description;
+  label = dag.units.trim().length ? `${label} - ${dag.units}` : label;
+
+  return [
+    'digraph {',
+    'node [shape=record];',
+    `label = "${label}";`,
+    `${nodeStatements}`,
+    `${edgeStatements}`,
+    '}'
+  ].join(' ')
+};
+
+
 //---------------------------------------------------------------[ DAG Utils ]--
+/**
+ * @param {*} n
+ * @return {boolean}
+ */
+const isNode = n => n instanceof Vertex;
+
 /**
  * @param {!Vertex} n
  * @returns {number}
@@ -1070,7 +1181,12 @@ const nodeMaker = gen => n => new Vertex(gen.next().value, n);
 
 
 class Dag {
-  constructor() {
+
+  /**
+   * @param {string=} opt_desc
+   * @param {(string|number)=} opt_ref
+   */
+  constructor(opt_desc, opt_ref) {
     /**
      * Dag can be given meta data for the duration of its life.
      * The meta is not persisted across dump and reads
@@ -1085,7 +1201,8 @@ class Dag {
      * @type {string|number|null}
      * @private
      */
-    this._ref = null;
+    this._ref = this.ref = isDef(opt_ref) ?
+        /** @type {(string|number)} */(opt_ref) : null;
 
     /**
      * Optional description for the DAG.
@@ -1093,7 +1210,8 @@ class Dag {
      * @type {string}
      * @private
      */
-    this._description = '';
+    this._description = this.description = isString(opt_desc)
+        ? /** @type(string) */(opt_desc) : '';
 
     /**
      * Optional description of the units.
@@ -1193,7 +1311,7 @@ class Dag {
    * @param {string|number|null} s
    */
   set ref(s) {
-    this._ref = isDef(s) ? s : null;
+    this._ref = isDef(s) && (isString(s) || isNumber(s)) ? s : null;
   }
 
 
@@ -1213,6 +1331,15 @@ class Dag {
    */
   get nodes() {
     return [...this.G.keys()];
+  }
+
+
+  /**
+   * @param {number} id
+   * @return {!Vertex|undefined}
+   */
+  getNode(id) {
+    return [...this.G.keys()].find(e => e.id === id);
   }
 
 
@@ -1314,17 +1441,17 @@ class Dag {
    * Add a node the the graph without connecting it.
    * Adding an already constructed node potentially mutates the DAG's built
    * in node maker to algorithm to produce nodes with non contiguous ids.
-   * If the given node has a higer ID than any of the existing nodes in the
+   * If the given node has a higher ID than any of the existing nodes in the
    * DAG, new nodes created by the DAG will count from this new highest ID.
    * @param {!Vertex} n
    * @returns {(!Vertex|boolean)}
    */
   addNode(n) {
+    if (!isNode(n) || this.ids.includes(n.id)) {
+      return false;
+    }
     if (this.G.has(n)) {
       return n;
-      }
-    if (this.ids.includes(n.id)) {
-      return false;
     }
     this.G.set(n, new Set());
     this._nodeMaker = nodeMaker(idGen(maxInArr(this.ids)));
@@ -1341,7 +1468,7 @@ class Dag {
    */
   delNode(n) {
     let deleted = false;
-    if (n && n !== this._rootNode) {
+    if (n && isNode(n) && n !== this._rootNode) {
       deleted = this.G.delete(n);
       if (deleted) {
         for (const [k, s] of this.G.entries()) {
@@ -1365,12 +1492,13 @@ class Dag {
    *
    * @param {!Vertex} a
    * @param {!Vertex} b
-   * @returns {Dag}
+   * @returns {!Dag|boolean}
    */
   connect(a, b) {
+    if (!(isNode(a) && isNode(b))) { return false; }
     if (a === this.root) {
       return this;
-      }
+    }
     if (b === this.root && this.indegrees(b).length > 0) {
       return this;
       }
@@ -1399,13 +1527,14 @@ class Dag {
    * That is remove node a as an input to node b.
    * @param {!Vertex} a
    * @param {!Vertex} b
-   * @returns {Dag}
+   * @returns {!Dag|boolean}
    */
   disconnect(a, b) {
+    if (!(isNode(a) && isNode(b))) { return false; }
     if (this.G.has(a)) {
       this.G.get(a).delete(b);
       b.delArg(a);
-      }
+    }
     return this
   }
 
@@ -1428,9 +1557,10 @@ class Dag {
   /**
    * Return an array of all the nodes that connects to the given node.
    * @param {!Vertex} n
-   * @returns {!Array<!Vertex>}
+   * @returns {!Array<!Vertex>|boolean}
    */
   indegrees(n) {
+    if (!isNode(n)) { return false; }
     const hasN = Vertex.isIn(n);
     return [...this.G.entries()].reduce(hasN, []);
   }
@@ -1439,9 +1569,10 @@ class Dag {
   /**
    * Return an array of all the nodes that the given node connects to.
    * @param {!Vertex} n
-   * @returns {!Array<!Vertex>}
+   * @returns {!Array<!Vertex>|boolean}
    */
   outdegrees(n) {
+    if (!isNode(n)) { return false; }
     return [...this.G.get(n)];
   }
 
@@ -1474,7 +1605,7 @@ class Dag {
    * Solve the dag, but return an array of the value of each node in
    * topo order. The same order a topo, topoIds and topoNames
    * @param {!Object=} opt_d
-   * @returns {Map<*, *>}
+   * @returns {*}
    */
   debug(opt_d) {
     return this.getSolver(true)(opt_d);
@@ -1492,7 +1623,7 @@ class Dag {
 
   /**
    * @param {boolean=} debug
-   * @returns {function((!Object|undefined)): *}
+   * @returns {!function((!Object|undefined)): (!Map<*,*>|*)}
    */
   getSolver(debug = false) {
     const m = removeOrphans(this.getIdG());
@@ -1528,38 +1659,11 @@ class Dag {
    * Dump the graph to a DOT-file
    * Read with: http://www.webgraphviz.com/
    * @param {!Object=} opt_d
-   * @param {boolean} id Print the node id
-   * @param {boolean} value Print the node solved value
    * @return {string}
    */
-  dumpToDot(opt_d, id=false, value=false) {
-    const solveMap = this.debug(opt_d);
-    console.log(solveMap);
-    const helper = node => {
-      let i = node.id;
-      let n = node.name;
-      let v = solveMap.get(i);
-      let r = `${n}`;
-      if (id) {
-        r =  `${node.id}:${node.name}`;
-      }
-      if (value) {
-        r =  `${r} = ${v}`;
-      }
-      return `"${r}"`;
-    };
-    let descr = this.description;
-    descr = this.units.trim().length ? `${descr} - ${this.units}` : descr;
-    const tups = [...this.G.entries()]
-        .reduce((p,[k,v]) => [...p, ...[...v].map(e => [k, e])], [])
-        .map(([a,b]) => [helper(a), helper(b)])
-        .reduce((p, [f, t]) => `${p} ${f} -> ${t};`, '');
-    return [
-        'digraph {',
-          `label = "${descr}";`,
-          `${tups}`,
-      '}'
-    ].join(' ')
+  dotPlot(opt_d) {
+    const solveMap = isDef(opt_d) ? this.debug(opt_d) : undefined;
+    return graphToDot(this, /** @type {(!Map<*,*>|undefined)} */(solveMap));
   }
 
   /**

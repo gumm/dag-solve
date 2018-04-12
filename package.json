@@ -1,6 +1,6 @@
 {
   "name": "dag-solve",
-  "version": "3.2.1",
+  "version": "3.3.1",
   "description": "Directed acyclic graph (DAG) based solver.",
   "main": "main.js",
   "scripts": {
@@ -29,7 +29,7 @@
   "homepage": "https://github.com/gumm/dag-solve#readme",
   "dependencies": {},
   "devDependencies": {
-    "badu": "^1.2.10",
+    "badu": "*",
     "be-sert": "*",
     "esm": "^3.0.17",
     "google-closure-compiler": "^20180402.0.0",

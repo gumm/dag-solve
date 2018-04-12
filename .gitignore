@@ -15,3 +15,4 @@ node_modules
 
 # IDE Settings files
 .idea
+/dot.txt

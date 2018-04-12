@@ -1,5 +1,5 @@
-import {alwaysUndef, isDef, isNumber, pRound, toLowerCase,} from '../node_modules/badu/module/badu.mjs';
-import {betweenFunc, comparatorFunc, dataPathFunc, enumFunc, enumSet, enumUnSet, eventCodeFunc, isRefString, mathFunc, roundFunc} from './utils.mjs';
+import {alwaysUndef, isDef, isNumber, pRound, toLowerCase, } from '../node_modules/badu/module/badu.mjs';
+import {fallBackFunc, betweenFunc, comparatorFunc, dataPathFunc, enumFunc, enumSet, enumUnSet, eventCodeFunc, isRefString, mathFunc, roundFunc} from './utils.mjs';
 
 
 /**
@@ -20,6 +20,54 @@ import {betweenFunc, comparatorFunc, dataPathFunc, enumFunc, enumSet, enumUnSet,
 let dumpType;
 
 
+/**
+ * Functions that can identify a node type.
+ * @type {Map<string, function(!Vertex): boolean>}
+ */
+const nodeTypeMap = new Map()
+    .set('Math', n => isDef(n.math))
+    .set('Enumerator', n => n.enum && n.enum.length)
+    .set('Rounding', n => isDef(n.round))
+    .set('Comparator', n => n.comparator && n.comparator.length)
+    .set('Range', n => n.between && n.between.length)
+    .set('Data Access', n => n.path && n.path.length)
+    .set('Event Access', n => n.evCode && n.evCode.length === 2)
+    .set('Constant', n => isDef(n.fallback));
+
+/**
+ * Node types to the functions they need to solve.
+ * @type {Map<(string|undefined), function(!Vertex): !Array<Function|string|undefined>>}
+ */
+const funcMap = new Map()
+    .set('Math', n => mathFunc(n.math, n.args))
+    .set('Enumerator', n => enumFunc(n.enum, n.args))
+    .set('Rounding', n => roundFunc(/** @type {number} */(n.round), n.args))
+    .set('Comparator', n => comparatorFunc(n.comparator, n.args))
+    .set('Range', n => betweenFunc(n.between, n.args))
+    .set('Data Access', n => dataPathFunc(n.path, n.args))
+    .set('Event Access', n => eventCodeFunc(n.evCode, n.args))
+    .set('Constant', n => fallBackFunc(n.fallback, n.args))
+    .set(undefined, n => fallBackFunc(n.fallback, n.args));
+
+
+/**
+ * Node type to a human readable description of their solution.
+ * Mostly used in the DOT formatter.
+ * @type {Map<string|undefined, function(!Vertex): string>}
+ */
+const nodeDescriptionMap = new Map()
+    .set('Math', n => n.math)
+    .set('Enumerator', n => n.enum.map(([k, v]) => `{${k} 🠚 ${v}}`).join('|'))
+    .set('Rounding', n => n.round)
+    .set('Comparator', n =>
+        n.comparator.join(' ').replace(/([<>])/gi, String.raw`\$1`))
+    .set('Range', n => n.between.join(' '))
+    .set('Data Access', n => n.path.join(' '))
+    .set('Event Access', n => n.evCode.join(' '))
+    .set('Constant', n => n.fallback)
+    .set(undefined, n => 'Not Configured');
+
+
 export default class Vertex {
   /**
    * @param {number} id
@@ -27,6 +75,7 @@ export default class Vertex {
    * @param {!dumpType|undefined} obj
    */
   constructor(id, name, obj = undefined) {
+
     /**
      * @type {number}
      * @private
@@ -182,6 +231,14 @@ export default class Vertex {
     return this._id;
   }
 
+
+  /**
+   * @return {string}
+   */
+  get descr() {
+    return nodeDescriptionMap.get(this.type)(this);
+  }
+
   /**
    * @returns {string|undefined}
    */
@@ -194,6 +251,14 @@ export default class Vertex {
    */
   set name(n) {
     this._name = n;
+  }
+
+  /**
+   * @return {string|undefined}
+   */
+  get type() {
+    const t = [...nodeTypeMap.entries()].find(([k,v]) => v(this));
+    return t ? t[0] : undefined;
   }
 
   // -----------------------------------------------------------------[ Args ]--
@@ -264,7 +329,7 @@ export default class Vertex {
         access = ['data', 'desc', 'code'].includes(ac) ? ac : access;
       }
       this._evCode = [n, access];
-      }
+    }
 
     return this;
   }
@@ -306,7 +371,7 @@ export default class Vertex {
     if (isDef(s)) {
       this._clearAll();
       this._math = s;
-      }
+    }
 
     return this;
   }
@@ -327,7 +392,7 @@ export default class Vertex {
     if (isNumber(int)) {
       this._clearAll();
       this._round = pRound(0)(/** @type {number} */(int));
-      }
+    }
 
     return this;
   };
@@ -374,7 +439,7 @@ export default class Vertex {
     if (pass) {
       this._clearAll();
       this._comparator = [v1, cmp, v2, outputFormat];
-      }
+    }
 
     return this;
   };
@@ -421,7 +486,7 @@ export default class Vertex {
     if (isClean) {
       this._clearAll();
       this._between = [v, s1, s2, outputFormat];
-      }
+    }
 
     return this;
   };
@@ -456,51 +521,17 @@ export default class Vertex {
   }
 
   /**
-   * @returns {Array<Array<*>>}
+   * @returns {!Array<!Array<*>>}
    */
-  get enum
-  () {
+  get enum() {
     return this._enum;
   }
 
   // ----------------------------------------------------------------[ Solve ]--
   clean() {
-    let nf = [this._nodus, this._func];
-    if (this.math) {
-      // This node does math.
-      nf = mathFunc(this.math, this.args);
-
-    } else if (this.enum && this.enum.length) {
-      // This node does enums
-      nf = enumFunc(this.enum, this.args);
-
-    } else if (isDef(this.round)) {
-      // This node does rounding
-      nf = roundFunc(/** @type {number} */(this.round), this.args);
-
-    } else if (this.comparator && this.comparator.length) {
-      // This node is a comparator
-      nf = comparatorFunc(this.comparator, this.args);
-
-    } else if (this.between && this.between.length) {
-      // This node is a between filter
-      nf = betweenFunc(this.between, this.args);
-
-    } else if (this.path && this.path.length) {
-      // This node can access data via a path into a data structure.
-      nf = dataPathFunc(this.path, this.args);
-
-    } else if (this.evCode && this.evCode.length === 2) {
-      // This node can access event codes.
-      nf = eventCodeFunc(this.evCode, this.args);
-
-    } else if (this._fallback) {
-      // This does nothing but return a fallback value
-      nf = [null, () => this._fallback];
-    }
-
-    [this._nodus, this._func] = nf;
-
+    const [n, f] = funcMap.get(this.type)(this);
+    this._nodus = /** @type (null|string|undefined) */(n);
+    this._func = /** @type (!Function) */(f);
     return this;
   }
 

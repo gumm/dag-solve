@@ -137,84 +137,76 @@ g.leafs;              // [ A ]
 ## Nodes can do things
 ```javascript
 const DAG = require('dag-solve');
-
-//   +-------------------------+
-//   |                         |
-//   |   +---+     +---+     +-v-+    +---+
-//   |   |   |     |   |     |   |    |   |
-//   |   | C +-----> B +-----> A +----> R |
-//   |   |   |     |   |     |   |    |   |
-//   |   +-^-+     +-^-+     +-^-+    +---+
-//   |     |         |         |
-//   |     |         |         |
-//   |   +-+-+     +-+-+       |
-//   |   |   |     |   |       |
-//   +---+ D +-----> E +-------+
-//       |   |     |   |
-//       +---+     +---+
-
-const g = new DAG();
+g = new DAG();
 g.description = 'Calc Temp';
 g.units = '°C';
 g.ref = 123;
-const A = g.makeNode('A').setMath('$1 * $2 / $3').setFallback(21);
-const B = g.makeNode('B').setMath('$1 + $2');
-const C = g.makeNode('C').setComparator('$1', '<', 100, 'ab');
-const D = g.makeNode('D').setMath(10);
-const E = g.makeNode('E').addEnum(10, 0.1).addEnum(3, -5);
-g.connect(A, g.root);
-g.connect(B, A);   // In A: $1 === B
-g.connect(C, B);   // In B: $1 === C
-g.connect(D, C);   // In C: $1 === D
-g.connect(D, E);   // In E: $1 === D
-g.connect(D, A);   // In A: $3 === D
-g.connect(E, B);   // In B: $2 === E
-g.connect(E, A);   // In A: $2 === E
+const A = g.makeNode('A').setMath('$1 * $2 / $3');
+const B = g.makeNode('B').setBetween('$1', '$2', '$3', 'vu').setFallback(4.56);
+const C = g.makeNode('C').setComparator('$1', '<=', '$2', 'ab');
+const D = g.makeNode('D')
+    .addEnum(10, 0.1)
+    .addEnum(3, -5)
+    .addEnum(123, -432)
+    .setFallback(12.5)
+const E = g.makeNode('E').setRound(1);
+const F = g.makeNode('F').setPath('v', 2);
+const G = g.makeNode('G').setEvCode(123, 'data');
+const H = g.makeNode('H').setFallback(10.5);
+const J = g.makeNode('J').setPath('a', 'b');
 
+g.connect(G, F);    // In F: G is $1
+g.connect(J, D);    // In F: J is $1
+g.connect(A, B);    // In B: A is $1
+g.connect(D, B);    // In B: D is $2
+g.connect(C, B);    // In B: C is $3
+g.connect(C, A);    // In A: C is $1
+g.connect(F, C);    // In C: F is $1
+g.connect(F, A);    // In A: F is $2
+g.connect(J, C);    // In C: J is $2
+g.connect(H, A);    // In A: H is $3
+g.connect(B, E);    // In E: B is $1
+g.connect(E, g.root);
 
-g.solve();    // 1010
-g.debug();    // [ 10, 0.1, 10, 10.1, 1010, 1010  ]
-g.topoNames;  // [ 'D', 'E', 'C', 'B', 'A', 'ROOT' ]
-              // The result of each step in topo order
+// Lests just declare some date we want to operate on:
+let event = {'123':{data:{v:[33,22,11]}}}
+let data = {_ev:event, a:{b:45}}
 
-D.setMath(3);
-g.solve();    // 1.2
-g.debug();    // [ 3, -5, 3, -2, 1.2, 1.2  ]
+// Solve with the data.
+g.solve();    // undefined
+g.solve(data) // 11.5
 
-// Add a fallback to the enum
-E.setFallback(3.456);
-D.setMath(123);
-g.debug();    // [ 123, 3.456, 100, 103.456, 3682.027.., 3682.027.. ]
+// What happened at each step?
+g.debug(data);  // Map {
+                //   'topoIds' => [ 9, 4, 8, 7, 6, 3, 1, 2, 5, 0 ],
+                //   'data' => { _ev: { '123': [Object] }, a: { b: 45 } },
+                //   9 => 45,
+                //   4 => 12.5,
+                //   8 => 10.5,
+                //   7 => { v: [ 33, 22, 11 ] },
+                //   6 => 11,
+                //   3 => 11,
+                //   1 => 11.523809523809524,
+                //   2 => 11.523809523809524,
+                //   5 => 11.5,
+                //   0 => 11.5,
+                //   'topoNames' => [ 'J', 'D', 'H', 'G', 'F', 'C', 'A', 'B', 'E', 'ROOT' ] }
 
-// Add a rounding function between A and root;
-const RND = g.makeNode('rounder').setRound(2);
-
-g.disconnect(A, g.root).connect(RND, g.root).connect(A, RND);
-g.debug(); // Map with the results of each step mapped to that step's id.
-           // Also includes a key 'topIds' and 'topoNames' with the
-           // relevant topo-sorted arrays of IDs and names respectively.
-g.solve(); // 3682.03
 ```
 # Use the solver
 Using the exact graph as above, we can get a solver function that can
 be applied to an array of values.
 ```javascript
-// First we make D take a value from an object path.
-D.setPath('v'); 
-
-// This means we can solve the graph by passing an object to
-// the solve method:
-g.solve({v:10}); // 1010 The same as when the D.node had 
-                 // a constant value of 10
-
+// Previously we used the the graph directly to solve.
+// But we can get a solver from the graph that has done some pre-processing
+// in it's setup. Using this solver is much more efficient than solving
+// the graph directly.
 // Now get a standalone solver function from the graph
 const s = g.getSolver();
-[{v:1}, {v:2}, {v:3}, {v:4}].map(s); // [ 1.29, 3.16, 1.2, 8.63 ]
+s(data) // 11.5
 
-// Go wild!
-Array(100).fill(1).map((e, i) => ({v:i})).map(s);
-// [ 0, 1.29, 3.16, 1.2, 8.63, 12.23,...   ]
-
+// Solve multiple data points.
+[d1, d2, d3].map(s); // [ 4.6, 11.5, 22.9 ... ]
 ```
 A note on the solver function: It is divorced from the graph, and changes
 to the graph won't be propagated to the solver function. If the graph
@@ -230,75 +222,85 @@ const json = g.dump();
 which produces this JSON...
 ```json
 {
-  "M": ["Calc Temp", "°C", 123],
+  "M": ["Calc Temp","°C",123],
   "G": [
-    [0, []],
-    [1, [6]],
-    [2, [1]],
-    [3, [2]],
-    [4, [3, 5, 1]],
-    [5, [2, 1]],
-    [6, [0]]
+    [0,[]],
+    [1,[2]],
+    [2,[5]],
+    [3,[2,1]],
+    [4,[2]],
+    [5,[0]],
+    [6,[3,1]],
+    [7,[6]],
+    [8,[1]],
+    [9,[4,3]]
   ],
-  "N": [
-    {"A": [], "B": [], "C": [], "E": [], "I": 4, "N": "D", "P": ["v"], "V": []},
-    {"A": [4], "B": [], "C": [], "D": 3.456, "E": [[10, 0.1], [3, -5]], "I": 5, "N": "E", "P": [], "V": []},
-    {"A": [4], "B": [], "C": ["$1", "<", 100, "ab"], "E": [], "I": 3, "N": "C", "P": [], "V": []},
-    {"A": [3, 5], "B": [], "C": [], "E": [], "I": 2, "M": "$1 + $2", "N": "B", "P": [], "V": []},
-    {"A": [2, 4, 5], "B": [], "C": [], "D": 21, "E": [], "I": 1, "M": "$1 * $2 / $3", "N": "A", "P": [], "V": []},
-    {"A": [1], "B": [], "C": [], "E": [], "I": 6, "N": "rounder", "P": [], "R": 2, "V": []},
-    {"A": [6], "B": [], "C": [], "E": [], "I": 0, "M": "$1", "N": "ROOT", "P": [], "V": []}]
+  "N":[
+    {"A":[],"B":[],"C":[],"E":[],"I":9,"N":"J","P":["a","b"],"V":[]},
+    {"A":[9],"B":[],"C":[],"D":12.5,"E":[[10,0.1],[3,-5],[123,-432]],"I":4,"N":"D","P":[],"V":[]},
+    {"A":[],"B":[],"C":[],"D":10.5,"E":[],"I":8,"N":"H","P":[],"V":[]},
+    {"A":[],"B":[],"C":[],"E":[],"I":7,"N":"G","P":[],"V":[123,"data"]},
+    {"A":[7],"B":[],"C":[],"E":[],"I":6,"N":"F","P":["v",2],"V":[]},
+    {"A":[6,9],"B":[],"C":["$1","<=","$2","ab"],"E":[],"I":3,"N":"C","P":[],"V":[]},
+    {"A":[3,6,8],"B":[],"C":[],"E":[],"I":1,"M":"$1 * $2 / $3","N":"A","P":[],"V":[]},
+    {"A":[1,4,3],"B":["$1","$2","$3","vu"],"C":[],"D":4.56,"E":[],"I":2,"N":"B","P":[],"V":[]},
+    {"A":[2],"B":[],"C":[],"E":[],"I":5,"N":"E","P":[],"R":1,"V":[]},
+    {"A":[5],"B":[],"C":[],"E":[],"I":0,"M":"$1","N":"ROOT","P":[],"V":[]}
+  ]
 }
 ```
 which can be read back into a new graph...
 ```javascript
 
 g2 = DAG.read(json)   // A static method to create a DAG from an object;
-g2.solve({v:10});     // 1010
+g2.solve(data);       // 11.5
 g2 === g;             // False
 
 ```
 
-# Dump a graph to GraphViz DOT format string
+# Dump a graph to GraphViz DOT format file
 ```javascript
-g2.dumpToDot({v:10});
+var fs = require('fs');
+const write = s => fs.writeFile("dot.txt", s, err => console.log(err ? err : 'OK'));
+write(g2.dotPlot());
 ```
-results in a string:
-```
-digraph {
-    label = "Calc Temp - °C";
-    "A" -> "rounder";
-    "B" -> "A";
-    "C" -> "B";
-    "D" -> "C";
-    "D" -> "E";
-    "D" -> "A";
-    "E" -> "B";
-    "E" -> "A";
-    "rounder" -> "ROOT";
-}
-```
-Optionally pass in data, and tell dumpToDot to print
-the results of the solved graph.
-
+Optionally pass in data to see the calculation results at each step.
 ```javascript
-g2.dumpToDot({v:1}, true, true);
+write(g2.dotPlot());
 ```
 ```
-digraph {
-    label = "Calc Temp - °C";
-    "1:A = 1.2893518518518516" -> "6:rounder = 1.29";
-    "2:B = 4.4559999999999995" -> "1:A = 1.2893518518518516";
-    "3:C = 1" -> "2:B = 4.4559999999999995";
-    "4:D = 1" -> "3:C = 1";
-    "4:D = 1" -> "5:E = 3.456";
-    "4:D = 1" -> "1:A = 1.2893518518518516";
-    "5:E = 3.456" -> "2:B = 4.4559999999999995";
-    "5:E = 3.456" -> "1:A = 1.2893518518518516";
-    "6:rounder = 1.29" -> "0:ROOT = 1.29"; }
+digraph { 
+    node [shape=record]; 
+    label = "Calc Temp - °C"; 
+    
+    0 [label="{{<5>$1}|Root|Final|{ID:0|ROOT}|11.5}"]; 
+    1 [label="{{<3>$1|<6>$2|<8>$3}|Math|$1 * $2 / $3|{ID:1|A}|11.523809523809524}"]; 
+    2 [label="{{<1>$1|<4>$2|<3>$3}|Range|$1 $2 $3 vu|{ID:2|B}|Default: 4.56|11.523809523809524}"]; 
+    3 [label="{{<6>$1|<9>$2}|Comparator|$1 \<= $2 ab|{ID:3|C}|11}"]; 
+    4 [label="{{<9>$1}|Enumerator|{10 🠚 0.1}|{3 🠚 -5}|{123 🠚 -432}|{ID:4|D}|Default: 12.5|12.5}"]; 
+    5 [label="{{<2>$1}|Rounding|1|{ID:5|E}|11.5}"]; 
+    6 [label="{{<7>$1}|Data Access|v 2|{ID:6|F}|11}"]; 
+    7 [label="{{}|Event Access|123 data|{ID:7|G}|[object Object]}"]; 
+    8 [label="{{}|Constant|10.5|{ID:8|H}|Default: 10.5|10.5}"]; 
+    9 [label="{{}|Data Access|a b|{ID:9|J}|45}"];  
+    
+    1 -> 2:1[label="11.523809523809524"]; 
+    2 -> 5:2[label="11.523809523809524"]; 
+    3 -> 2:3[label="11"]; 
+    3 -> 1:3[label="11"]; 
+    4 -> 2:4[label="12.5"]; 
+    5 -> 0:5[label="11.5"]; 
+    6 -> 3:6[label="11"]; 
+    6 -> 1:6[label="11"]; 
+    7 -> 6:7[label="[object Object]"]; 
+    8 -> 1:8[label="10.5"]; 
+    9 -> 4:9[label="45"]; 
+    9 -> 3:9[label="45"]; }
 ```
 These DOT-file strings can be used to visualize the graph.
-See for instance tools like: http://www.webgraphviz.com/
+See for instance tools like: http://www.webgraphviz.com/ or http://viz-js.com/
+
+[[https://github.com/gumm/dag-solve/img/dot.png|alt=graphvis_rendering]]
 
 
 

@@ -185,7 +185,7 @@ const mathFunc = (m, a) => {
     }
   } else {
     [err, f] = funcMaker(m);
-    }
+  }
   return [err, f];
 };
 
@@ -238,7 +238,7 @@ const compFuncHelper = (v, a) => {
     f = sMap => sMap.get(a[i]);
   } else {
     f = () => v
-    }
+  }
   return f;
 };
 
@@ -301,10 +301,12 @@ const dataPathFunc = (p, a) => {
   let f;
   if (sameArr(p, [null])) {
     // By convention when the path is null, just return the data...
-    f = sMap => sMap.get('data');
+    f = sMap => sMap.get(a.length ? a[0] : 'data');
   } else {
-    f = sMap => pathOr(undefined, p)(sMap.get('data'));
+    f = sMap => {
+      return pathOr(undefined, p)(sMap.get(a.length ? a[0] : 'data'));
     }
+  }
   return [null, f];
 };
 
@@ -334,6 +336,17 @@ const eventCodeFunc = ([code, access], a) => {
 };
 
 
+/**
+ * @param {*} d The fallback/default value;
+ * @param {!Array<number>} a
+ * @returns {funcGetterType}
+ */
+const fallBackFunc = (d, a) => {
+  const f = () => d;
+  return [null, f];
+};
+
+
 export {
   enumSet,
   enumUnSet,
@@ -344,6 +357,7 @@ export {
   betweenFunc,
   dataPathFunc,
   eventCodeFunc,
+  fallBackFunc,
   idGen,
   safeJsonParse,
   mathCleaner,

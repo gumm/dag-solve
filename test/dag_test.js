@@ -391,7 +391,7 @@ describe('A dag can be given a value/object to compute on', () => {
     C.setPath('SOME', 2, 'weird', 'data', 3, 1);
 
     // We have to reduce the number of elements here to pass the test.
-    const t5k = B.truncate(5000)
+    const t5k = B.truncate(5000);
     t5k(D2).map(e => g.solve(e));  // <- About 300ms
   });
 
