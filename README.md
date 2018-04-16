@@ -300,8 +300,7 @@ digraph {
 These DOT-file strings can be used to visualize the graph.
 See for instance tools like: http://www.webgraphviz.com/ or http://viz-js.com/
 
-[![Graph](img/dot.png)](img/dot.png)
-
+![[Graph](./img/dot.png)](./img/dot.png)
 
 
 
