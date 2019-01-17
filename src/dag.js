@@ -1,7 +1,7 @@
-import {isDef, maxInArr, isString, isNumber} from '../node_modules/badu/module/badu.mjs';
+import {isDef, maxInArr, isString, isNumber} from '../node_modules/badu/badu.js';
 
-import {idGen, safeJsonParse,} from './utils.mjs';
-import Vertex from './vertex.mjs';
+import {idGen, safeJsonParse,} from './utils.js';
+import Vertex from './vertex.js';
 
 
 //---------------------------------------------------------------[ DOT Utils ]--

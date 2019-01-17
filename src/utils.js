@@ -1,4 +1,4 @@
-import {alwaysFalse, alwaysUndef, isString, pathOr, pRound, sameArr} from '../node_modules/badu/module/badu.mjs';
+import {alwaysFalse, alwaysUndef, isString, pathOr, pRound, sameArr} from '../node_modules/badu/badu.js';
 
 
 /**

@@ -3,7 +3,7 @@ import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 
 export default [{
-  input: 'src/dag.mjs',
+  input: 'src/dag.js',
   output: {
     file: 'dist/_temp.js',
     format: 'iife',
@@ -16,7 +16,7 @@ export default [{
   treeshake: true
 },
   {
-    input: 'src/dag.mjs',
+    input: 'src/dag.js',
     output: {
       file: 'main.js',
       format: 'cjs',

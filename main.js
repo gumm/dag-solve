@@ -56,6 +56,7 @@ const isString = n => whatType(n) === 'string';
 const isNumber = n => whatType(n) === 'number' &&
     !Number.isNaN(/** @type number */(n));
 
+
 /**
  * A strict same elements in same order comparison.
  * @param {Array<*>} a
@@ -91,7 +92,7 @@ const toLowerCase = x => x.toLowerCase();
 const pathOr = (f, arr) => e => {
   const r = arr.reduce((p, c) => {
     try {
-      return p[c];
+      return p[maybeNumber(c)];
     } catch (err) {
       return undefined
     }
@@ -108,6 +109,19 @@ const pathOr = (f, arr) => e => {
 const pRound = precision => {
   const factor = Math.pow(10, precision);
   return number => Math.round(number * factor) / factor;
+};
+
+/**
+ * Given a string, returns a number if you can. Else return what was given.
+ * @param {*} s
+ * @returns {number|*}
+ */
+const maybeNumber = s => {
+  if (s === null) {
+    return s;
+  }
+  const p = 1 * s;
+  return Number.isNaN(p) ? s : p;
 };
 
 const argRefSymbol = 'X';
@@ -153,7 +167,7 @@ const enumUnSet = (arr, k) => arr.filter(e => e[0] !== k);
  * @param {number=} opt_n
  * @return {!Iterator<number>}
  */
-function* idGen(opt_n) {
+function* idGen$1(opt_n) {
   let i = opt_n ? opt_n + 1 : 0;
   while (true) yield i++;
   }
@@ -1231,7 +1245,7 @@ class Dag {
      * @type {function(string): !Vertex}
      * @private
      */
-    this._nodeMaker = nodeMaker(idGen());
+    this._nodeMaker = nodeMaker(idGen$1());
 
     /**
      * @type {!Vertex}
@@ -1454,7 +1468,7 @@ class Dag {
       return n;
     }
     this.G.set(n, new Set());
-    this._nodeMaker = nodeMaker(idGen(maxInArr(this.ids)));
+    this._nodeMaker = nodeMaker(idGen$1(maxInArr(this.ids)));
     return n;
   }
 

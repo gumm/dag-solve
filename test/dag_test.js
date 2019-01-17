@@ -1,7 +1,7 @@
 const be = require('be-sert');
 const assert = require('assert');
-import * as B from '../node_modules/badu/module/badu.mjs';
-import DAG from '../src/dag.mjs'
+import * as B from '../node_modules/badu/badu.js';
+import DAG from '../src/dag.js'
 
 
 describe('Root node is automatically created', () => {
