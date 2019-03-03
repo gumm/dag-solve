@@ -100,8 +100,6 @@ const pathOr = (f, arr) => e => {
   return r === undefined ? f : r;
 };
 
-
-//--------------------------------------------------------[ Math and Numbers ]--
 /**
  * @param {number} precision
  * @returns {function(number): number}
